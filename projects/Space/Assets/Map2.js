@@ -135,6 +135,7 @@ class Map extends Entity {
           Math.random() * geometry.parameters.height -
             geometry.parameters.height / 2
         ),
+        polygon: null,
         ...this.getRandomBiome(),
       });
     }
@@ -145,23 +146,14 @@ class Map extends Entity {
       -geometry.parameters.height / 2,
       geometry.parameters.width / 2,
       geometry.parameters.height / 2,
-      // 0, 0, geometry.parameters.width, geometry.parameters.height
     ]);
 
+    for (let i = 0; i < instanciatedBiomes.length; i++) {
+      instanciatedBiomes[i].polygon = voronoi.cellPolygon(i);
+    }
     setTimeout(() => {
       this.debug({ biomes: instanciatedBiomes, voronoi });
     }, 100);
-
-    const biomePolygons = [];
-    for (let i in instanciatedBiomes) {
-      const polygon = voronoi.cellPolygon(i);
-      if (polygon) {
-        biomePolygons.push({
-          biome: instanciatedBiomes[i],
-          polygon,
-        });
-      }
-    }
 
     let colors = geometry.attributes.color.array;
 
@@ -204,9 +196,12 @@ class Map extends Entity {
   }
 
   debug({ biomes, voronoi }) {
+    
     // Dessiner les cellules de Voronoï
     for (let i = 0; i < biomes.length; i++) {
-      const polygon = voronoi.cellPolygon(i); // Obtenir les sommets du polygone
+
+      const polygon = biomes[i].polygon; // Obtenir les sommets du polygone
+
       if (polygon) {
         const points3D = polygon.map(([x, z]) => new Vector3(x, z, 150)); // Z=0 pour un polygone plat
         points3D.push(points3D[0]); // Fermer le polygone
@@ -237,7 +232,7 @@ class Map extends Entity {
         this.scene.threeScene.add(mesh);
 
         let centerGeometry = new SphereGeometry(10);
-        let centerMaterial = new MeshBasicMaterial({ color: 0xff00ff });
+        let centerMaterial = new MeshBasicMaterial({ color: 0xff00ff, transparent: true, opacity: .2 });
         let centerMesh = new Mesh(centerGeometry, centerMaterial);
 
         centerMesh.position.set(biomes[i].position.x, biomes[i].position.y, 150);
