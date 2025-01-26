@@ -151,13 +151,15 @@ class TerrainGenerator {
 
       // Loop through all edges and calculate the distance from the current vertice
       for (let j = 0; j < edges.length; j++) {
+        let d = BiomeCalculator.edgeDistance(
+          [x, y],
+          edges[j][0],
+          edges[j][1]
+        )
+
         distances.push({
           index: j,
-          distance: BiomeCalculator.edgeDistance(
-            [x, y],
-            edges[j][0],
-            edges[j][1]
-          ),
+          distance:  d + d * (this.#noise.noise(x * .008, y * .008) - .5) * .6
         });
       }
 
@@ -169,7 +171,6 @@ class TerrainGenerator {
         ...d,
         biome: BiomeCalculator.getNeighborBiomeByEdge(edges[d.index], biome.neighbors)
       }))
-      
 
       if (biome) {
 
@@ -192,14 +193,14 @@ class TerrainGenerator {
           if (z > 0) {
             weights.push(z/10)
             colors.push(new Color(0xffffff))
-          }
+          4}
     
           // Compute the mix
           color = this.mixMultipleColors(colors, weights)
         }
 
         // If altitude is greater than 20, color became white no matter the previous calculations
-        if (z > 20) {
+        if (z > 20 + (this.#noise.noise(x * .08, y * .08) - .5) * 10) {
           color=new Color(0xffffff)
         }
 
