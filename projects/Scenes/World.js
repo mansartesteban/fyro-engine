@@ -1,6 +1,7 @@
 import Scene from "@core/Scene";
 // import Map from "../Space/Assets/Map";
-import Map from "../Space/Assets/Map2";
+// import Map from "../Space/Assets/Map2";
+import Map from "../Space/Assets/Map3";
 import PointLight from "@assets/Lights/PointLight/Entity";
 import AmbientLight from "@assets/Lights/AmbientLight/Entity";
 import { OrbitControls } from "three/examples/jsm/Addons.js";
@@ -14,7 +15,7 @@ class World extends Scene {
   setup() {
     let map = new Map();
     this.sunlight = new PointLight(0xffffff, 100000, 10000);
-    this.sunlight.transform.position.y = 300;
+    this.sunlight.transform.position.z = 200;
 
     // this.ambientLight = new AmbientLight(0xff0000, 1);
 
