@@ -2,7 +2,12 @@ import { Color } from "three";
 import Biome from "../Biome";
 
 class BiomeLake extends Biome {
-  static frequency = 5;
+  static frequency = 10;
+
+  influence = 2
+  amplitudeModifier = .03
+  frequencyModifier = 1
+  altitude = -10
 
   constructor(...args) {
     super(...args);

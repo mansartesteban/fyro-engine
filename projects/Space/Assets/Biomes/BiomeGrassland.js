@@ -4,6 +4,8 @@ import Biome from "../Biome";
 class BiomeGrassland extends Biome {
   static frequency = 30;
 
+  amplitudeModifier = .5
+
   constructor(...args) {
     super(...args);
     this.name = "grassland";

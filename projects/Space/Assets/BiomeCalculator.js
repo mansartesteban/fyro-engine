@@ -130,6 +130,16 @@ class BiomeCalculator {
         return biome;
       }
     }
+    return null
+  }
+
+  static findBiomeIndex([x, y], biomes) {
+    for (let i = 0; i < biomes.length ; i++) {
+        if (biomes[i].isInBiome([x, y])) {
+            return i;
+        }
+    }
+    return -1
   }
 }
 

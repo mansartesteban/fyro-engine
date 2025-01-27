@@ -48,12 +48,12 @@ class Viewer3d extends Viewer {
       10000
     );
 
-    // this.camera.position.x = 200;
-    // this.camera.position.y = 200;
-    // this.camera.position.z = 200;
-    this.camera.position.x = 0;
-    this.camera.position.y = 500;
-    this.camera.position.z = 0;
+    this.camera.position.x = 200;
+    this.camera.position.y = 200;
+    this.camera.position.z = 200;
+    // this.camera.position.x = 0;
+    // this.camera.position.y = 500;
+    // this.camera.position.z = 0;
     this.camera.lookAt(new Vector3());
 
     this.options = { ...defaultOptions, ...options };

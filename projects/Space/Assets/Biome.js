@@ -5,6 +5,10 @@ class Biome {
 
   name;
   color;
+  amplitudeModifier = 1;
+  frequencyModifier = 1;
+  influence = 1;
+  altitude = 1;
 
   #position;
   polygon = null;
