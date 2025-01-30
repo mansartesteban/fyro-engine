@@ -1,23 +1,10 @@
 import {
-  ArrowHelper,
-  BufferAttribute,
-  BufferGeometry,
   Color,
-  DoubleSide,
   Float32BufferAttribute,
-  LineBasicMaterial,
-  LineLoop,
-  Mesh,
-  MeshBasicMaterial,
   MeshStandardMaterial,
   PlaneGeometry,
-  Raycaster,
   ShaderMaterial,
-  Shape,
-  ShapeGeometry,
-  SphereGeometry,
   Vector2,
-  Vector3,
 } from "three";
 import { SimplexNoise } from "three/examples/jsm/Addons.js";
 import MeshRenderComponent from "@core/Components/MeshRenderComponent";
@@ -28,9 +15,6 @@ import BiomeLake from "./Biomes/BiomeLake";
 import BiomePlain from "./Biomes/BiomePlain";
 import BiomeCalculator from "./BiomeCalculator";
 import BiomeMountain from "./Biomes/BiomeMountain";
-
-import NumericUtils from "@lib/Numeric";
-import { clamp } from "three/src/math/MathUtils.js";
 
 const biomes = [
   BiomeLake,
@@ -47,14 +31,13 @@ class TerrainGenerator {
   biomeCount = 15;
   blendThreshold = 30;
 
-  noiseFrequency = 0.008;
-  noiseAmplitude = 2;
+  noiseFrequency = 0.08;
+  noiseAmplitude = 40;
 
   octaves = 4;
   scale = 12;
   persistance = -2.5;
   lacunarity = 0.4;
-  smoothing = 0;
   seed = null;
   scene;
 
@@ -117,8 +100,6 @@ class TerrainGenerator {
       this.#geometry.parameters.height / 2 + 50,
     ]);
 
-    //   console.log("this.#voronoi", this.#voronoi);
-
     // Calculate Voronoi polygon for each biome
     for (let i = 0; i < this.#biomes.length; i++) {
       this.#biomes[i].polygon = this.#voronoi.cellPolygon(i);
@@ -155,8 +136,6 @@ class TerrainGenerator {
       };
     }
     
-    let squaredDistance = this.blendThreshold ** 2;
-    
     for (
       let i = 0;
       i < this.#geometry.attributes.position.array.length / 3;
@@ -165,11 +144,9 @@ class TerrainGenerator {
       const x = this.#verticesDatas[i].x
       const y = this.#verticesDatas[i].y
       
-      // let distanceToCompare  = this.blendThreshold  ** 2
-      let threshold = this.blendThreshold 
-
       let pointsToBlend = [];
-      // TODO: Optimisation de la seconde boucle : Chercher seulement les points dans un carré de threshold * threshold
+      let threshold = this.blendThreshold
+
       for (
         let j = 0;
         j < this.#geometry.attributes.position.array.length / 3;
@@ -178,24 +155,21 @@ class TerrainGenerator {
         const xj = this.#verticesDatas[j].x;
         const yj = this.#verticesDatas[j].y;
         
-        if ((xj >= x - threshold || xj <= x + threshold) && (yj >= y - threshold || yj <= y + threshold)) {
+        let n = this.#noise.noise(xj * this.noiseFrequency, yj * this.noiseFrequency) * this.noiseAmplitude
           
-          let d = Math.sqrt((x - xj) ** 2 + (y - yj) ** 2) 
+          let d = Math.sqrt((x - xj) ** 2 + (y - yj) ** 2)  + n
 
-
-          // d = d + this.#noise.noise(x * this.noiseFrequency, y * this.noiseFrequency) * this.noiseAmplitude
-          // d *= n
-          //d = d * (this.#noise.noise(x * this.noiseFrequency, y * this.noiseFrequency)) 
-          // console.log("d", d, { x, y }, { x: xj, y: yj })
           if (d < threshold) {
-            d  = Math.sqrt(d)
-            pointsToBlend.push({
-              biome: this.#verticesDatas[j].biome,
-              influence: (1 - d / threshold) * this.#verticesDatas[j].biome.influence,
-            });
+            let influence = d * this.#verticesDatas[j].biome.influence 
+            if (influence > 0) {
+              pointsToBlend.push({
+                biome: this.#verticesDatas[j].biome,
+                influence
+              });
+            }
           }
-        }
       }
+
 
       if (pointsToBlend.length === 0) {
         pointsToBlend.push({
@@ -263,60 +237,49 @@ class TerrainGenerator {
 
   // Apply color for each biome. If a vertice is near to an edge (depending on influenceThreshold), mix color for each near biome for smooth transitions
   colorize() {
-    let verticeColors = [];
 
-    // console.log("colorisze?")
+    let colors = []
     // Loop through each vertice
     for (
       let i = 0;
       i < this.#geometry.attributes.position.array.length / 3;
       i++
     ) {
-      // const x = this.#geometry.attributes.position.getX(i);
-      // const y = this.#geometry.attributes.position.getY(i);
-      // const z = this.#geometry.attributes.position.getZ(i);
+      const x = this.#geometry.attributes.position.getX(i);
+      const y = this.#geometry.attributes.position.getY(i);
+      const z = this.#geometry.attributes.position.getZ(i);
 
-      // If some neightborgs exists, apply a color mix
-      let color = new Color(0, 0, 0);
+        // Base color will be the color of the current biome
 
-      // console.log("infl", this.#verticesDatas[i]);
+        // If some neightborgs exists, apply a color mix
+        let weightsToMix = this.#verticesDatas[i].influences.map(influence => influence.influence);
+        let colorsToMix = this.#verticesDatas[i].influences.map(influence => influence.biome.color);
 
-      this.#verticesDatas[i].influences.forEach((influence) => {
-        color.r += influence.biome.color.r * influence.influence;
-        color.g += influence.biome.color.g * influence.influence;
-        color.b += influence.biome.color.b * influence.influence;
-      });
+        // If altitude is greater than 0, add "white" to the color mix for snow
+        if (z > 20) {
+          weightsToMix.push((z - 20) / 20);
+          colorsToMix.push(new Color(0xffffff));
+          4;
+        }
 
-      // If altitude is greater than 0, add "white" to the color mix for snow
-      // if (z > 5) {
-      //   weights.push(z / 10);
-      //   colors.push(new Color(0xffffff));
-      //   4;
-      // }
+        // Compute the mix
+        let color = this.mixMultipleColors(colorsToMix, weightsToMix);
 
-      // Compute the mix
-      // let color = this.mixMultipleColors(colors, weights);
-      // console.log("color", color)
+        // If altitude is greater than 20, color became white no matter the previous calculations
+        if (z > 80 + (this.#noise.noise(x * 0.02, y * 0.02)) * 10) {
+          color = new Color(0xffffff);
+        }
 
-      // If altitude is greater than 20, color became white no matter the previous calculations
-      // if (z >  (this.#noise.noise(x * 0.02, y * 0.02)) * 20) {
-      //   color = new Color(0xffffff);
-      // }
-
-      // Finally replace the color in the bufferArray provide by Three by decomposing r, g, b chanels
-      let arr = color.toArray();
-      verticeColors[i * 3] = arr[0];
-      verticeColors[i * 3 + 1] = arr[1];
-      verticeColors[i * 3 + 2] = arr[2];
-    }
+        // Finally replace the color in the bufferArray provide by Three by decomposing r, g, b chanels
+        let arr = color.toArray();
+        colors[i * 3] = arr[0];
+        colors[i * 3 + 1] = arr[1];
+        colors[i * 3 + 2] = arr[2];
+      }
 
     // Reset the buffer array in the geometry and recompute normals
+    this.#geometry.setAttribute("color", new Float32BufferAttribute(colors, 3));
     this.#geometry.computeVertexNormals();
-    this.#geometry.attributes.position.needsUpdate = true;
-    this.#geometry.setAttribute(
-      "color",
-      new Float32BufferAttribute(verticeColors, 3)
-    );
   }
 
   // Apply a weighted color mix depending
@@ -369,24 +332,24 @@ class TerrainGenerator {
       this.subdivisions
     );
 
-    // this.#material = new MeshStandardMaterial({ vertexColors: true });
+    this.#material = new MeshStandardMaterial({ vertexColors: true });
 
-    this.#material = new ShaderMaterial({
-      vertexShader: `
-          flat varying vec3 vColor;
-          void main() {
-              vColor = color; // Passe la couleur brute sans interpolation
-              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-          }
-      `,
-      fragmentShader: `
-          flat varying vec3 vColor;
-          void main() {
-              gl_FragColor = vec4(vColor, 1.0); // Affiche la couleur brute
-          }
-      `,
-      vertexColors: true, // Active les couleurs par sommet
-    });
+    // this.#material = new ShaderMaterial({
+    //   vertexShader: `
+    //       flat varying vec3 vColor;
+    //       void main() {
+    //           vColor = color; // Passe la couleur brute sans interpolation
+    //           gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    //       }
+    //   `,
+    //   fragmentShader: `
+    //       flat varying vec3 vColor;
+    //       void main() {
+    //           gl_FragColor = vec4(vColor, 1.0); // Affiche la couleur brute
+    //       }
+    //   `,
+    //   vertexColors: true, // Active les couleurs par sommet
+    // });
 
     this.#meshRenderer = new MeshRenderComponent({
       geometry: this.#geometry,
@@ -447,19 +410,6 @@ class TerrainGenerator {
 
       // Set the Z position of the vertice with the previous calculation
       this.#geometry.attributes.position.setZ(i, this.#heightMap ? noiseHeight : 0);
-
-      //   if (Math.floor(x) % 2 && Math.floor(y) % 2) {
-      //     let centerMesh = new Mesh(centerGeometry, centerMaterial);
-      //     centerMesh.position.set(
-      //       x,
-      //       y,
-      //       noiseHeight + 50
-      //     );
-      //     setTimeout(() => {
-
-      //       this.scene.threeScene.add(centerMesh);
-      //     }, 100)
-      //   }
     }
 
     // Recompute normals and indicate to Three to update the mesh
@@ -468,22 +418,9 @@ class TerrainGenerator {
   }
 
   update(func) {
-    // if (
-    //   this.#geometry.parameters.width !== this.terrainWidth ||
-    //   this.#geometry.parameters.height !== this.terrainHeight ||
-    //   this.#geometry.parameters.heightSegments !== this.subdivisions ||
-    //   this.#geometry.parameters.widthSegments !== this.subdivisions
-    // ) {
-    //   this.#geometry = new PlaneGeometry(
-    //     this.terrainWidth,
-    //     this.terrainHeight,
-    //     this.subdivisions,
-    //     this.subdivisions
-    //   );
-    // }
-    this.modifyHeightMap();
-    // this.makeBiomeBoundaries();
-    // this.colorize();
+    this.makeBiomeBoundaries();
+    this.modifyHeightMap()
+    this.colorize();
   }
 }
 

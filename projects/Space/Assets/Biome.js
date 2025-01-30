@@ -48,6 +48,8 @@ class Biome {
     }
     return inside;
   }
+
+  compute() {}
 }
 
 export default Biome;

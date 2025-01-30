@@ -5,12 +5,12 @@ class BiomePlain extends Biome {
   static frequency = 10;
 
   amplitudeModifier = .5
-  frequencyModifier = 1
+  frequencyModifier = .5
 
   constructor(...args) {
     super(...args);
     this.name = "plain";
-    this.color = new Color(0x228b22);
+    this.color = new Color(0xf4a460);
   }
 }
 
