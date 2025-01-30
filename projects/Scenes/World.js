@@ -14,8 +14,11 @@ class World extends Scene {
 
   setup() {
     let map = new Map();
-    this.sunlight = new PointLight(0xffffff, 500000, 50000);
-    this.sunlight.transform.position.z = 1000;
+    this.sunlight = new PointLight(0xffffff, 50000000, 5000000);
+    this.sunlight.transform.position.z = 10000;
+
+    let light = new AmbientLight()
+    this.threeScene.add(light)
 
     // this.ambientLight = new AmbientLight(0xff0000, 1);
 
@@ -31,10 +34,6 @@ class World extends Scene {
 
   loop(tick) {
     this.controls.update();
-    // this.sunlight.transform.position.x =
-    //   Math.sin((tick + (Math.PI / 3) * 100) / 100) * 3;
-    // this.sunlight.transform.position.z =
-    //   Math.cos((tick + (Math.PI / 3) * 100) / 100) * 3;
   }
 }
 

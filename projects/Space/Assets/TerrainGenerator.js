@@ -1,6 +1,8 @@
 import {
   Color,
   Float32BufferAttribute,
+  MeshLambertMaterial,
+  MeshPhongMaterial,
   MeshStandardMaterial,
   PlaneGeometry,
   ShaderMaterial,
@@ -25,19 +27,19 @@ const biomes = [
 ];
 
 class TerrainGenerator {
-  terrainWidth = 500;
-  terrainHeight = 500;
-  subdivisions = 50;
-  biomeCount = 15;
-  blendThreshold = 30;
+  terrainWidth = 5000;
+  terrainHeight = 5000;
+  subdivisions = 512;
+  biomeCount = 25;
+  blendThreshold = 80;
 
-  noiseFrequency = 0.08;
-  noiseAmplitude = 40;
+  noiseFrequency = 0.001;
+  noiseAmplitude = 800;
 
   octaves = 4;
-  scale = 12;
-  persistance = -2.5;
-  lacunarity = 0.4;
+  scale = 40;
+  persistance = -4.4;
+  lacunarity = 0.34;
   seed = null;
   scene;
 
@@ -86,7 +88,6 @@ class TerrainGenerator {
       );
     }
 
-    // console.log("bioms", this.#biomes);
     // Apply Delaunay triangulation
     const delaunay = Delaunay.from(
       this.#biomes.map((b) => [b.position.x, b.position.y])
@@ -332,7 +333,7 @@ class TerrainGenerator {
       this.subdivisions
     );
 
-    this.#material = new MeshStandardMaterial({ vertexColors: true });
+    this.#material = new MeshLambertMaterial({vertexColors: true});
 
     // this.#material = new ShaderMaterial({
     //   vertexShader: `
@@ -425,3 +426,11 @@ class TerrainGenerator {
 }
 
 export default TerrainGenerator;
+
+
+/* 
+TODO - Next steps
+- Add pRNG (seeded generation)
+- Add a basic terrain heightsmap (like fundamental basic surface leveling)
+- Add LOD (maybe a kind of LOD as for previewing the generation)
+*/
