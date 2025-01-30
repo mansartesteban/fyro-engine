@@ -2,7 +2,7 @@ import { Color } from "three";
 import Biome from "../Biome";
 
 class BiomeForest extends Biome {
-  static frequency = 20;
+  static frequency = 30;
 
   constructor(...args) {
     super(...args);
@@ -12,3 +12,4 @@ class BiomeForest extends Biome {
 }
 
 export default BiomeForest;
+

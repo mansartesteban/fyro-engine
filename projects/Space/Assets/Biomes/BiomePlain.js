@@ -4,13 +4,13 @@ import Biome from "../Biome";
 class BiomePlain extends Biome {
   static frequency = 10;
 
-  amplitudeModifier = .33
-  frequencyModifier = .8
+  amplitudeModifier = .5
+  frequencyModifier = 1
 
   constructor(...args) {
     super(...args);
     this.name = "plain";
-    this.color = new Color(0xd2b48c);
+    this.color = new Color(0x228b22);
   }
 }
 

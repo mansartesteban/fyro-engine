@@ -14,8 +14,8 @@ class World extends Scene {
 
   setup() {
     let map = new Map();
-    this.sunlight = new PointLight(0xffffff, 100000, 10000);
-    this.sunlight.transform.position.z = 200;
+    this.sunlight = new PointLight(0xffffff, 500000, 50000);
+    this.sunlight.transform.position.z = 1000;
 
     // this.ambientLight = new AmbientLight(0xff0000, 1);
 

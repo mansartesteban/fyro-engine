@@ -1,6 +1,4 @@
 import {
-  ArrowHelper,
-  BufferAttribute,
   BufferGeometry,
   Color,
   DoubleSide,
@@ -30,7 +28,6 @@ import BiomeCalculator from "./BiomeCalculator";
 import BiomeMountain from "./Biomes/BiomeMountain";
 
 import NumericUtils from "@lib/Numeric";
-import { clamp } from "three/src/math/MathUtils.js";
 
 const biomes = [
   BiomeLake,
@@ -43,30 +40,30 @@ const biomes = [
 class TerrainGenerator {
   terrainWidth = 500;
   terrainHeight = 500;
-  subdivisions = 50;
-  biomeCount = 15;
-  blendThreshold = 30;
+  subdivisions = 100;
+  biomeCount = 8;
+  influenceThreshold = 20;
 
-  noiseFrequency = 0.008;
-  noiseAmplitude = 2;
+  noiseFrequency = 0;
+  noiseAmplitude = 0;
 
   octaves = 4;
   scale = 12;
   persistance = -2.5;
   lacunarity = 0.4;
-  smoothing = 0;
   seed = null;
   scene;
 
-  #biomes = [];
-  #verticesDatas = [];
-
-  #voronoi;
   #geometry;
   #material;
   #meshRenderer;
   #noise;
-  #heightMap = true;
+  #biomes = [];
+  #heightMap = false;
+
+  #influences = [];
+
+  #voronoi;
 
   create() {
     this.instanciateNoise();
@@ -74,7 +71,6 @@ class TerrainGenerator {
     this.createBiomes();
     this.modifyHeightMap();
     this.colorize();
-    this.#geometry.computeVertexNormals();
 
     return this.#meshRenderer;
   }
@@ -83,9 +79,10 @@ class TerrainGenerator {
    * Create biomes by positioning random biome centers and applying delaunay triangulation and voronoi diagram
    */
   createBiomes() {
-    //   // Instanciante each biome depending on 'biomeCount'
+    // Instanciante each biome depending on 'biomeCount'
     for (let i = 0; i < this.biomeCount; i++) {
       // Get a random biome
+      // let randomBiome = biomes[i];
       let randomBiome = this.getRandomBiome();
 
       // Add biome to instance list
@@ -103,7 +100,6 @@ class TerrainGenerator {
       );
     }
 
-    // console.log("bioms", this.#biomes);
     // Apply Delaunay triangulation
     const delaunay = Delaunay.from(
       this.#biomes.map((b) => [b.position.x, b.position.y])
@@ -117,7 +113,7 @@ class TerrainGenerator {
       this.#geometry.parameters.height / 2 + 50,
     ]);
 
-    //   console.log("this.#voronoi", this.#voronoi);
+    console.log(this.#voronoi.delaunay)
 
     // Calculate Voronoi polygon for each biome
     for (let i = 0; i < this.#biomes.length; i++) {
@@ -131,7 +127,26 @@ class TerrainGenerator {
         this.#biomes,
         this.#voronoi
       );
+
+      // let centerGeometry = new SphereGeometry(10);
+      // let centerMaterial = new MeshBasicMaterial({
+      //   color: 0xff00ff,
+      //   transparent: true,
+      //   opacity: 0.2,
+      // });
+      // let centerMesh = new Mesh(centerGeometry, centerMaterial);
+
+      // centerMesh.position.set(
+      //   this.#biomes[i].position.x,
+      //   this.#biomes[i].position.y,
+      //   50
+      // );
+      // setTimeout(() => {
+
+      //   this.scene.threeScene.add(centerMesh);
+      // }, 100)
     }
+
     this.makeBiomeBoundaries();
   }
 
@@ -144,100 +159,143 @@ class TerrainGenerator {
       const x = this.#geometry.attributes.position.getX(i);
       const y = this.#geometry.attributes.position.getY(i);
 
-      // Retrieve the biome in which the vertice is
-      let thisBiome = this.#biomes[this.#voronoi.delaunay.find(x, y)];
+      let triangle = this.findTriangle({x, y});
+      if (!triangle) continue
+      let biomes = triangle.map((tri) => this.#biomes[tri]);
+      // console.log(triangle, biomes)
+      let weightedCoordinates = this.calculateBarycentricWeights(
+        { x, y },
+        biomes[0].position,
+        biomes[1].position,
+        biomes[2].position
+      );
+      console.log("weigthed", weightedCoordinates);
 
-      this.#verticesDatas[i] = {
-        x,
-        y,
-        biome: thisBiome,
-        influences: []
-      };
-    }
-    
-    let squaredDistance = this.blendThreshold ** 2;
-    
-    for (
-      let i = 0;
-      i < this.#geometry.attributes.position.array.length / 3;
-      i++
-    ) {
-      const x = this.#verticesDatas[i].x
-      const y = this.#verticesDatas[i].y
-      
-      // let distanceToCompare  = this.blendThreshold  ** 2
-      let threshold = this.blendThreshold 
-
-      let pointsToBlend = [];
-      // TODO: Optimisation de la seconde boucle : Chercher seulement les points dans un carré de threshold * threshold
-      for (
-        let j = 0;
-        j < this.#geometry.attributes.position.array.length / 3;
-        j++
-      ) {
-        const xj = this.#verticesDatas[j].x;
-        const yj = this.#verticesDatas[j].y;
-        
-        if ((xj >= x - threshold || xj <= x + threshold) && (yj >= y - threshold || yj <= y + threshold)) {
-          
-          let d = Math.sqrt((x - xj) ** 2 + (y - yj) ** 2) 
-
-
-          // d = d + this.#noise.noise(x * this.noiseFrequency, y * this.noiseFrequency) * this.noiseAmplitude
-          // d *= n
-          //d = d * (this.#noise.noise(x * this.noiseFrequency, y * this.noiseFrequency)) 
-          // console.log("d", d, { x, y }, { x: xj, y: yj })
-          if (d < threshold) {
-            d  = Math.sqrt(d)
-            pointsToBlend.push({
-              biome: this.#verticesDatas[j].biome,
-              influence: (1 - d / threshold) * this.#verticesDatas[j].biome.influence,
-            });
-          }
-        }
-      }
-
-      if (pointsToBlend.length === 0) {
-        pointsToBlend.push({
-          biome: this.#verticesDatas[i].biome,
-          influence: 1
+      if (i === 5000) {
+        let geometry = new SphereGeometry(5);
+        let material = new MeshBasicMaterial({
+          color: 0xff0000,
+          transparent: true,
+          opacity: 1,
         });
+        let mesh = new Mesh(geometry, material);
+
+        mesh.position.set(x, y, 50);
+
+        let centerGeometry = new SphereGeometry(3);
+        let centerMaterial = new MeshBasicMaterial({
+          color: 0xffff00,
+          transparent: true,
+          opacity: 1,
+        });
+        
+        let meshes = []
+        let centerMesh = new Mesh(centerGeometry, centerMaterial)
+
+        centerMesh.position.x = trianglePoints[0][0]
+        centerMesh.position.y = trianglePoints[0][1]
+        centerMesh.position.z = 50
+        meshes.push(centerMesh)
+        centerMesh = new Mesh(centerGeometry, centerMaterial)
+        centerMesh.position.x = trianglePoints[1][0]
+        centerMesh.position.y = trianglePoints[1][1]
+        centerMesh.position.z = 50
+        meshes.push(centerMesh)
+        centerMesh = new Mesh(centerGeometry, centerMaterial)
+        centerMesh.position.x = trianglePoints[2][0]
+        centerMesh.position.y = trianglePoints[2][1]
+        centerMesh.position.z = 50
+        meshes.push(centerMesh)
+
+        setTimeout(() => {
+          this.scene.threeScene.add(mesh);
+          meshes.forEach(m => this.scene.threeScene.add(m))
+        }, 100);
       }
 
-      let totalWeight = pointsToBlend.reduce((sum, vertice) => sum + vertice.influence, 0)
-      for (let j = 0; j < pointsToBlend.length; j++) {
-        pointsToBlend[j].influence /= totalWeight;
-      }
-
-      this.#verticesDatas[i].influences = pointsToBlend;
+      this.#influences[i] = biomes.map((biome, index) => ({
+        biome,
+        influence: weightedCoordinates[index],
+      }));
     }
   }
 
-  calculateBarycentricWeights(P, points) {
-    const n = points.length;
-    const areas = [];
-    let totalArea = 0;
+  isPointInTriangle(P, A, B, C) {
+    const cross = (p1, p2) => p1.x * p2.y - p1.y * p2.x;
 
-    // Calcul des aires des triangles
-    for (let i = 0; i < n; i++) {
-      const A = points[i];
-      const B = points[(i + 1) % n]; // Boucle vers le premier point
+    const v0 = { x: C.x - A.x, y: C.y - A.y };
+    const v1 = { x: B.x - A.x, y: B.y - A.y };
+    const v2 = { x: P.x - A.x, y: P.y - A.y };
 
-      const area =
-        Math.abs(P.x * (A.y - B.y) + A.x * (B.y - P.y) + B.x * (P.y - A.y)) / 2;
+    const dot00 = cross(v0, v0);
+    const dot01 = cross(v0, v1);
+    const dot02 = cross(v0, v2);
+    const dot11 = cross(v1, v1);
+    const dot12 = cross(v1, v2);
 
-      areas.push(area);
-      totalArea += area;
+    const invDenom = 1 / (dot00 * dot11 - dot01 * dot01);
+    const u = (dot11 * dot02 - dot01 * dot12) * invDenom;
+    const v = (dot00 * dot12 - dot01 * dot02) * invDenom;
+
+    return u >= 0 && v >= 0 && u + v <= 1;
+}
+
+  findTriangle(point) {
+    const closestPointIndex = this.#voronoi.delaunay.find(point.x, point.y)
+
+    let indexesFoundInTriangles = []
+    for (let i = 0 ; i < this.#voronoi.delaunay.triangles.length ; i++) {
+      if (this.#voronoi.delaunay.triangles[i] === closestPointIndex) {
+        indexesFoundInTriangles.push(i)
+      }
     }
 
-    // Calcul des poids barycentriques normalisés
-    return areas.map((area) => area / totalArea);
+    console.log("all potential tirangles", indexesFoundInTriangles)
+
+    for (let i = 0 ; i < indexesFoundInTriangles.length ; i++) {
+      let realStartIndex = Math.round(indexesFoundInTriangles[i] / 3) * 3
+      const triangle = [
+        this.#voronoi.delaunay.triangles[realStartIndex],
+        this.#voronoi.delaunay.triangles[realStartIndex + 1],
+        this.#voronoi.delaunay.triangles[realStartIndex + 2],
+      ];
+
+      console.log("real tri", triangle, point, ...triangle.map(t => this.#biomes[t].position), this.isPointInTriangle(point, ...triangle.map(t => this.#biomes[t].position)))
+
+      if (this.isPointInTriangle(point, ...triangle.map(t => this.#biomes[t].position))) {
+        return triangle
+      }
+
+    }
+
+    console.log("no triangle")
+    return [];
   }
 
-  distance(a, b) {
-    return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
+  calculateBarycentricWeights(P, A, B, C) {
+    const areaABC =
+      Math.abs(A.x * (B.y - C.y) + B.x * (C.y - A.y) + C.x * (A.y - B.y)) / 2;
+
+    const areaPBC =
+      Math.abs(P.x * (B.y - C.y) + B.x * (C.y - P.y) + C.x * (P.y - B.y)) / 2;
+
+    const areaPCA =
+      Math.abs(P.x * (C.y - A.y) + C.x * (A.y - P.y) + A.x * (P.y - C.y)) / 2;
+
+    const areaPAB =
+      Math.abs(P.x * (A.y - B.y) + A.x * (B.y - P.y) + B.x * (P.y - A.y)) / 2;
+
+    const totalArea = areaPBC + areaPCA + areaPAB;
+
+    // Poids barycentriques normalisés
+    const lambda1 = areaPBC / totalArea;
+    const lambda2 = areaPCA / totalArea;
+    const lambda3 = areaPAB / totalArea;
+
+    return [lambda1, lambda2, lambda3];
   }
 
+  // Returns a random class biome based on the spawn frequency
   getRandomBiome() {
     const totalFrequency = biomes.reduce(
       (sum, item) => sum + item.frequency,
@@ -263,41 +321,31 @@ class TerrainGenerator {
 
   // Apply color for each biome. If a vertice is near to an edge (depending on influenceThreshold), mix color for each near biome for smooth transitions
   colorize() {
-    let verticeColors = [];
+    let meshColors = [];
 
-    // console.log("colorisze?")
     // Loop through each vertice
     for (
       let i = 0;
       i < this.#geometry.attributes.position.array.length / 3;
       i++
     ) {
-      // const x = this.#geometry.attributes.position.getX(i);
-      // const y = this.#geometry.attributes.position.getY(i);
-      // const z = this.#geometry.attributes.position.getZ(i);
+      const x = this.#geometry.attributes.position.getX(i);
+      const y = this.#geometry.attributes.position.getY(i);
+      const z = this.#geometry.attributes.position.getZ(i);
 
+      // Base color will be the color of the current biome
       // If some neightborgs exists, apply a color mix
       let color = new Color(0, 0, 0);
 
-      // console.log("infl", this.#verticesDatas[i]);
+      // console.log("infl", this.#influences[i]);
 
-      this.#verticesDatas[i].influences.forEach((influence) => {
+      this.#influences[i].forEach((influence) => {
         color.r += influence.biome.color.r * influence.influence;
         color.g += influence.biome.color.g * influence.influence;
         color.b += influence.biome.color.b * influence.influence;
       });
 
-      // If altitude is greater than 0, add "white" to the color mix for snow
-      // if (z > 5) {
-      //   weights.push(z / 10);
-      //   colors.push(new Color(0xffffff));
-      //   4;
-      // }
-
-      // Compute the mix
-      // let color = this.mixMultipleColors(colors, weights);
-      // console.log("color", color)
-
+      // console.log("color", weights, colors, color)
       // If altitude is greater than 20, color became white no matter the previous calculations
       // if (z >  (this.#noise.noise(x * 0.02, y * 0.02)) * 20) {
       //   color = new Color(0xffffff);
@@ -305,18 +353,17 @@ class TerrainGenerator {
 
       // Finally replace the color in the bufferArray provide by Three by decomposing r, g, b chanels
       let arr = color.toArray();
-      verticeColors[i * 3] = arr[0];
-      verticeColors[i * 3 + 1] = arr[1];
-      verticeColors[i * 3 + 2] = arr[2];
+      meshColors[i * 3] = arr[0];
+      meshColors[i * 3 + 1] = arr[1];
+      meshColors[i * 3 + 2] = arr[2];
     }
 
     // Reset the buffer array in the geometry and recompute normals
-    this.#geometry.computeVertexNormals();
-    this.#geometry.attributes.position.needsUpdate = true;
     this.#geometry.setAttribute(
       "color",
-      new Float32BufferAttribute(verticeColors, 3)
+      new Float32BufferAttribute(meshColors, 3)
     );
+    this.#geometry.computeVertexNormals();
   }
 
   // Apply a weighted color mix depending
@@ -396,37 +443,29 @@ class TerrainGenerator {
 
   // Modify the altitude of the vertices to create on organic terrain. Based on SimplexNoise
   modifyHeightMap() {
-
     // Loop through each vertice
     for (
       let i = 0;
       i < this.#geometry.attributes.position.array.length / 3;
       i++
     ) {
-      let amplitude
-      let frequency
-      let altitude
-
       let weights = [];
-
       let amplitudes = [];
       let frequencies = [];
       let altitudes = [];
 
-      if (this.#verticesDatas[i].influences) {
-        for (let verticeInfluence of this.#verticesDatas[i].influences) {
-          weights.push(verticeInfluence.influence);
-          amplitudes.push(
-            verticeInfluence.biome?.amplitudeModifier || amplitude
-          );
-          frequencies.push(verticeInfluence.biome?.frequencyModifier || frequency);
-          altitudes.push(verticeInfluence.biome?.altitude || altitude);
-        }
-
-        amplitude = this.weightedAverage(amplitudes, weights);
-        frequency = this.weightedAverage(frequencies, weights);
-        altitude = this.weightedAverage(altitudes, weights);
+      for (let influence of this.#influences[i]) {
+        weights.push(influence.influence);
+        amplitudes.push(influence.biome?.amplitudeModifier);
+        frequencies.push(influence.biome?.frequencyModifier);
+        altitudes.push(influence.biome?.altitude);
       }
+
+      // console.log("this.#influences[i]", this.#influences, this.#geometry.attributes.position.array, i, weights, amplitudes, frequencies, altitudes)
+
+      let amplitude = this.weightedAverage(amplitudes, weights);
+      let frequency = this.weightedAverage(frequencies, weights);
+      let altitude = this.weightedAverage(altitudes, weights);
 
       let noiseHeight = altitude;
 
@@ -446,7 +485,10 @@ class TerrainGenerator {
       }
 
       // Set the Z position of the vertice with the previous calculation
-      this.#geometry.attributes.position.setZ(i, this.#heightMap ? noiseHeight : 0);
+      this.#geometry.attributes.position.setZ(
+        i,
+        this.#heightMap ? noiseHeight : 0
+      );
 
       //   if (Math.floor(x) % 2 && Math.floor(y) % 2) {
       //     let centerMesh = new Mesh(centerGeometry, centerMaterial);
@@ -467,7 +509,7 @@ class TerrainGenerator {
     this.#geometry.attributes.position.needsUpdate = true;
   }
 
-  update(func) {
+  update() {
     // if (
     //   this.#geometry.parameters.width !== this.terrainWidth ||
     //   this.#geometry.parameters.height !== this.terrainHeight ||
@@ -481,9 +523,10 @@ class TerrainGenerator {
     //     this.subdivisions
     //   );
     // }
+    console.log("update???");
     this.modifyHeightMap();
-    // this.makeBiomeBoundaries();
-    // this.colorize();
+    this.makeBiomeBoundaries();
+    this.colorize();
   }
 }
 
