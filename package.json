@@ -12,6 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "alea": "^1.0.1",
     "d3-delaunay": "^6.0.4",
     "dat.gui": "^0.7.9",
     "delaunator": "^5.0.1",

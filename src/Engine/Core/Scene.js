@@ -1,5 +1,5 @@
 import Viewer3d from "@core/Viewers/Viewer3d";
-import { Vector2, Scene as ThreeScene } from "three";
+import { Vector2, Scene as ThreeScene, GridHelper } from "three";
 import EntityManager from "@core/EntityManager";
 
 class Scene {

@@ -1,0 +1,59 @@
+#debug-console {
+    color: white;
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: rgba(20, 20, 20, .5);
+    padding: 1rem;
+    margin: 1rem;
+    border-radius: 8px;
+    font-family: monospace;
+    font-size: 20px;
+    width: 600px;
+}
+#debug-console .log-line {
+    white-space: pre-wrap;
+    color: #6c757d;
+}
+#debug-console .log-line.success {
+    color: #28a745;
+}
+#debug-console .log-line.info {
+    color: #17a2b8;
+}
+#debug-console .log-line.warning {
+    color: #ffc107;
+}
+#debug-console .log-line.error {
+    color: #dc3545;
+}
+
+#debug-console:not(.opened) {
+    display: none;
+}
+
+#debug-console input {
+    font-family: monospace;
+    margin-left: 1rem;
+    outline: none;
+    text-wrap: wrap;
+    white-space: wrap;
+}
+#debug-console input.hide {
+    display: none;
+}
+
+#debug-console .input-container {
+    display: flex;
+    align-items: center;
+    margin-top: 1rem;
+    padding-top: .5rem;
+    border-top: 1px solid #222222;
+}
+#debug-console .input-container::before {
+    content: "> _";
+    /* position: absolute; */
+    font-weight: 900;
+    color: white;
+    white-space: nowrap
+}

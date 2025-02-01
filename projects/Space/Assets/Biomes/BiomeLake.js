@@ -4,10 +4,10 @@ import Biome from "../Biome";
 class BiomeLake extends Biome {
   static frequency = 10;
 
-  influence = 20
+  influence = 3
   amplitudeModifier = .001
   frequencyModifier = 0.01
-  altitude = -10
+  altitude = 0.1
 
   constructor(...args) {
     super(...args);

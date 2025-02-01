@@ -31,15 +31,42 @@ class Map extends Entity {
   addGui(instance) {
     const gui = new GUI();
 
-    let payload = {};
-    Object.getOwnPropertyNames(instance).forEach((attribute) => {
-      payload[attribute] = instance[attribute] ?? 0;
+    // let payload = {};
+    // Object.getOwnPropertyNames(instance).forEach((attribute) => {
+    //   payload[attribute] = instance[attribute] ?? 0;
 
-      gui.add(payload, attribute).onChange((value) => {
-        instance[attribute] = value;
-        instance.update();
-      });
-    });
+    //   gui.add(payload, attribute).onChange((value) => {
+    //     instance[attribute] = value;
+    //     instance.update();
+    //   });
+    // });
+
+    let datas = {
+      altitudeFrequencyX: instance.altitudeFrequencyX,
+      altitudeFrequencyY: instance.altitudeFrequencyY,
+      altitudeAmplitude: instance.altitudeAmplitude
+    }
+
+    gui.add(datas, "altitudeFrequencyX").onChange((value) => {
+      instance.altitudeFrequencyX = value;
+      datas.altitudeFrequencyX = value;
+      instance.createBiomes()
+      instance.modifyHeightMap()
+    })
+
+    gui.add(datas, "altitudeFrequencyY").onChange((value) => {
+      instance.altitudeFrequencyY = value;
+      datas.altitudeFrequencyY = value;
+      instance.createBiomes()
+      instance.modifyHeightMap()
+    })
+
+    gui.add(datas, "altitudeAmplitude").onChange((value) => {
+      instance.altitudeAmplitude = value;
+      datas.altitudeAmplitude = value;
+      instance.createBiomes()
+      instance.modifyHeightMap()
+    })
   }
 }
 

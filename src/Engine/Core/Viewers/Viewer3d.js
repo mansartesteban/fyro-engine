@@ -19,20 +19,6 @@ class Viewer3d extends Viewer {
   camera;
   axisHelper;
 
-  // const geometry = new THREE.BoxGeometry(1, 1, 1);
-  // const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-  // const cube = new THREE.Mesh(geometry, material);
-  // scene.add(cube);
-
-  // const renderer = new THREE.WebGLRenderer();
-  // renderer.setSize(window.innerWidth, window.innerHeight);
-  // document.body.appendChild(renderer.domElement);
-
-  // function animate() {
-  //   renderer.render(scene, camera);
-  // }
-  // renderer.setAnimationLoop(animate);
-
   constructor(node, scene, options) {
     super();
 
@@ -45,12 +31,12 @@ class Viewer3d extends Viewer {
       80,
       this.node?.clientWidth / this.node?.clientHeight,
       0.1,
-      10000
+      100000
     );
 
-    this.camera.position.x = 200;
-    this.camera.position.y = 200;
-    this.camera.position.z = 200;
+    this.camera.position.x = 20000;
+    this.camera.position.y = 20000;
+    this.camera.position.z = 20000;
     // this.camera.position.x = 0;
     // this.camera.position.y = 500;
     // this.camera.position.z = 0;

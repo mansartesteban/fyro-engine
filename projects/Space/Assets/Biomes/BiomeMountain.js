@@ -3,10 +3,10 @@ import Biome from "../Biome";
 import { SimplexNoise } from "three/examples/jsm/Addons.js"
 
 class BiomeMountain extends Biome {
-  static frequency = 50;
+  static frequency = 100;
 
   influence = 5
-  amplitudeModifier = 1
+  amplitudeModifier = 3
   frequencyModifier = 1
   altitude = 100
 
@@ -14,7 +14,7 @@ class BiomeMountain extends Biome {
     super(...args);
 
     this.name = "mountain";
-    this.color = new Color(0x8b8b83);
+    this.color = new Color(0xaaaaaa);
   }
 
   compute(x, y, z) {
