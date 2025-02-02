@@ -57,6 +57,7 @@ class CLI {
       ) {
         str += "\n" + this.help(command.node, lvl + 1);
       } else {
+        let maxSize = Math.max(...command.options.map((option) => option.name.length));
         command.options?.forEach((option) => {
           str += "\n" + "".padStart((lvl + 1) * 2, " ");
           if (option.name) {
@@ -66,7 +67,8 @@ class CLI {
             str += ", -" + option.shortcut;
           }
           if (option.help) {
-            str += " " + option.help;
+            str += "".padStart(maxSize - option.name.length, " ")
+            str += " | " + option.help;
           }
         });
       }

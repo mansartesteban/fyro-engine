@@ -2,7 +2,7 @@ import ConsoleStream from "./ConsoleStream";
 import CLI from "./CLI"
 
 class Console {
-  #opened = false;
+  #opened = true;
 
   #dom;
   #historyDom;
@@ -17,6 +17,7 @@ class Console {
 
   constructor() {
     this.#cli.stream = this.#stream
+    this.#history = localStorage.getItem("fyro-console-history").split(",").map(line => line.replace("&nbsp;", ","))
     this.make();
   }
 
@@ -86,6 +87,7 @@ class Console {
         this.#history.unshift(args);
         this.#historyIndex = -1;
         this.#inputDom.focus();
+        localStorage.setItem("fyro-console-history", this.#history.slice(0, 50).map(line => line.replace(",", "&nbsp;")))
       });
     }
   }
@@ -171,6 +173,9 @@ TODO
 - Les options commençant par un tiret simple ne devraient pas être intereprétées comme des mots mais comme des ensemble de lettre
 - Prendre en compte le majuscules/minuscules
 - this.stream : si une des fonctions n'existe pas, utiliser log par défaut
-- Possibility d'avoir un prompt pour renseigner une valeur en moileu de script
+- Possibility d'avoir un prompt pour renseigner une valeur en milieu de script
 - Ajouter en paramètre le niveau de verbosité. Lorsque l'on executera la fonction, un paramètre sera envoye pour indiquer le niveau de verbosité
+   * - Faire la documentation de Console et ConsoleStream
+   * - Voir si CLI fonctionne et l'implémenter
+   * - Avoir un arrêt de la fonction avec ctrl + C
 */

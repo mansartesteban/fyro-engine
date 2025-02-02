@@ -2,12 +2,7 @@ import Entity from "@core/Entity";
 import MapRender from "./MapRender";
 
 import { GUI } from "dat.gui";
-import BiomeForest from "./Biomes/BiomeForest";
-import BiomePlain from "./Biomes/BiomeGrassland";
-import BiomeLake from "./Biomes/BiomeLake";
 import TerrainGenerator from "./TerrainGenerator";
-
-const biomes = [BiomeForest, BiomePlain, BiomeLake];
 
 class Map extends Entity {
   constructor() {
@@ -20,8 +15,8 @@ class Map extends Entity {
     let terrainGenerator = new TerrainGenerator();
 
     setTimeout(() => {
-      terrainGenerator.scene = this.scene
-    }, 50)
+      terrainGenerator.scene = this.scene;
+    }, 50);
 
     this.addGui(terrainGenerator);
     let meshRenderer = terrainGenerator.create();
@@ -31,41 +26,25 @@ class Map extends Entity {
   addGui(instance) {
     const gui = new GUI();
 
-    // let payload = {};
-    // Object.getOwnPropertyNames(instance).forEach((attribute) => {
-    //   payload[attribute] = instance[attribute] ?? 0;
-
-    //   gui.add(payload, attribute).onChange((value) => {
-    //     instance[attribute] = value;
-    //     instance.update();
-    //   });
-    // });
-
     let datas = {
-      altitudeFrequencyX: instance.altitudeFrequencyX,
-      altitudeFrequencyY: instance.altitudeFrequencyY,
-      altitudeAmplitude: instance.altitudeAmplitude
-    }
+      altitudeFrequency: instance.altitudeFrequency,
+      altitudeWeight: instance.altitudeWeight,
+      temperatureFrequency: instance.temperatureFrequency,
+      humidityFrequency: instance.humidityFrequency,
+      erosionFrequency: instance.erosionFrequency,
+      erosionWeight: instance.erosionWeight,
+      updateTerrainHeight: instance.updateTerrainHeight,
+    };
 
-    gui.add(datas, "altitudeFrequencyX").onChange((value) => {
-      instance.altitudeFrequencyX = value;
-      datas.altitudeFrequencyX = value;
-      instance.createBiomes()
-      instance.modifyHeightMap()
-    })
-
-    gui.add(datas, "altitudeFrequencyY").onChange((value) => {
-      instance.altitudeFrequencyY = value;
-      datas.altitudeFrequencyY = value;
-      instance.createBiomes()
-      instance.modifyHeightMap()
-    })
-
-    gui.add(datas, "altitudeAmplitude").onChange((value) => {
-      instance.altitudeAmplitude = value;
-      datas.altitudeAmplitude = value;
-      instance.createBiomes()
-      instance.modifyHeightMap()
+    Object.keys(datas).forEach((key) => {
+      gui.add(datas, key).onChange((value) => {
+        instance[key] = value
+        instance.createBiomes();
+        if (["altitudeFrequency", "erosionFrequency", "erosionWeight"].includes(key)) {
+          instance.modifyHeightMap()
+        }
+        instance.colorize()
+      });
     })
   }
 }

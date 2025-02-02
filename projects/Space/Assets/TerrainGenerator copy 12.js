@@ -13,20 +13,30 @@ import alea from "alea";
 import Console from "@core/../Console/Console";
 import Command from "../../../src/Engine/Console/Command";
 import { lerp } from "three/src/math/MathUtils.js";
-import BiomeMapper from "./BiomeMapping"
+import ColdDesert from "./Biomes/ColdDesert";
+import Grassland from "./Biomes/Grassland";
+import HotDesert from "./Biomes/HotDesert";
+import Iceland from "./Biomes/Iceland";
+import Savana from "./Biomes/Savana";
+import Swamp from "./Biomes/Swamp";
+import Taiga from "./Biomes/Taiga";
+import TemperedForest from "./Biomes/TemperedForest";
+import TropicalForest from "./Biomes/TropicalForest";
+import Tundra from "./Biomes/Tundra";
+import Plain from "./Biomes/Plain";
+import RockyDesert from "./Biomes/RockyDesert"
 
 class TerrainGenerator {
   terrainWidth = 50000;
   terrainHeight = 50000;
   subdivisions = 128;
 
-  altitudeFrequency = 22.4;
-  temperatureFrequency = 7;
-  humidityFrequency = 4.3;
-  erosionFrequency = 3;
+  altitudeFrequency = 2.5;
+  temperatureFrequency = 5;
+  humidityFrequency = 3;
+  erosionFrequency = 1.5;
 
-  altitudeWeight = 21;
-  erosionWeight = 10
+  altitudeWeight = 5;
 
   showAltitude = false;
   showTemperature = false;
@@ -50,13 +60,28 @@ class TerrainGenerator {
   #material;
   #meshRenderer;
 
+  biomes = [
+    new Iceland(),
+    new Tundra(),
+    new Taiga(),
+    new ColdDesert(),
+    new Grassland(),
+    new TemperedForest(),
+    new RockyDesert(),
+    new HotDesert(),
+    new Savana(),
+    new TropicalForest(),
+    new Swamp(),
+    new Plain(),
+  ];
+
   create() {
     this.createTerrain();
     this.createBiomes();
     this.modifyHeightMap();
     this.colorize();
 
-    // Console.execute("maps toggle --erosion");
+    // Console.execute("maps toggle --temperature");
 
     return this.#meshRenderer;
   }
@@ -65,10 +90,10 @@ class TerrainGenerator {
    * Create biomes by positioning random biome centers and applying delaunay triangulation and voronoi diagram
    */
   createBiomes() {
-    this.createErosionMap();
     this.createAltitudeMap();
     this.createTemperatureMap();
     this.createHumidityMap();
+    this.createErosionMap();
 
     this.computeBiomes();
 
@@ -111,6 +136,30 @@ class TerrainGenerator {
     this.colorize();
   }
 
+  // determinateBiome(i) {
+  //   let params = this.#verticesDatas[i];
+
+  //   const desertFactor = 1 - params.humidity;
+  //   const coldFactor = 1 - params.temperature;
+
+  //   const desertChance = lerp(0.7, 0.9, desertFactor);
+  //   const forestChance = lerp(0.4, 0.8, params.humidity);
+  //   const tundraChance = lerp(0.6, 0.9, coldFactor);
+
+  //   if (params.temperature > 0.8 && params.humidity < desertChance)
+  //     return { name: "Désert chaud", color: new Color(0xff0000) };
+  //   if (params.temperature > 0.5 && params.humidity > forestChance)
+  //     return { name: "Forêt tempérée", color: new Color(0x22aa33) };
+  //   if (params.temperature < 0.3 && params.humidity < tundraChance)
+  //     return { name: "Toundra", color: new Color(0x00ffff) };
+  //   if (params.temperature < 0.2)
+  //     return { name: "Glacier", color: new Color(0xffffff) };
+  //   if (params.humidity > 0.8)
+  //     return { name: "Marais", color: new Color(0x995522) };
+
+  //   return { name: "Plaine", color: new Color(0x00ff00) };
+  // }
+
   lerp(a, b, t) {
     return a * (1 - t) + b * t;
   }
@@ -124,7 +173,28 @@ class TerrainGenerator {
 
   determinateBiome(i) {
     let params = this.#verticesDatas[i];
-    return BiomeMapper.getBiome(params.temperature, params.humidity)
+
+    // const humidityFactor = 1 - params.humidity;
+    // const temperatureFactor = 1 - params.temperature;
+
+    return this.biomes.find((biome) => {
+      let cond =
+        biome.conditions.temperature.min <= params.temperature &&
+        biome.conditions.temperature.max >= params.temperature &&
+        biome.conditions.humidity.min <= params.humidity &&
+        biome.conditions.humidity.max >= params.humidity;
+      // console.log(
+      //   "params",
+      //   cond,
+      //   params,
+      //   biome,
+      //   biome.conditions.temperature.min <= params.temperature,
+      //   biome.conditions.temperature.max >= params.temperature,
+      //   biome.conditions.humidity.min <= params.humidity,
+      //   biome.conditions.humidity.max >= params.humidity
+      // );
+      return cond;
+    });
   }
 
   calculateScore(biome, temperature, humidity) {
@@ -170,7 +240,7 @@ class TerrainGenerator {
         ) +
           1) /
         2;
-      this.#verticesDatas[i].altitude = (n + this.#verticesDatas[i].erosion * this.erosionWeight)/(this.erosionWeight+1);
+      this.#verticesDatas[i].altitude = n;
     }
   }
 
@@ -183,8 +253,8 @@ class TerrainGenerator {
       const x = this.#geometry.attributes.position.getX(i);
       const y = this.#geometry.attributes.position.getY(i);
 
-      const nx = x / this.terrainWidth 
-      const ny = y / this.terrainHeight
+      const nx = x / this.terrainWidth;
+      const ny = y / this.terrainHeight;
 
       let altitudeInfluence = this.#verticesDatas[i].altitude;
       let n =
@@ -261,10 +331,10 @@ class TerrainGenerator {
       let color;
       if (this.showAltitude) {
         color = baseColor.clone();
-        color.multiplyScalar(this.#verticesDatas[i].altitude > .8 ? 1 : this.#verticesDatas[i].altitude);
+        color.multiplyScalar(this.#verticesDatas[i].altitude);
       } else if (this.showTemperature) {
         color = baseColor.clone();
-        color.multiplyScalar(this.#verticesDatas[i].temperature < .2 ? 1 : this.#verticesDatas[i].temperature);
+        color.multiplyScalar(this.#verticesDatas[i].temperature);
       } else if (this.showHumidity) {
         color = baseColor.clone();
         color.multiplyScalar(this.#verticesDatas[i].humidity);
