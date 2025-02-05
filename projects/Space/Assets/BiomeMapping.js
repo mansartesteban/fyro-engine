@@ -488,7 +488,7 @@ const map = [
 ];
 
 class BiomeMapper {
-  static biomes = [
+  static biomes = {
     iceland,
     tundra,
     taiga,
@@ -501,7 +501,8 @@ class BiomeMapper {
     tropicalForest,
     plain,
     swamp,
-  ];
+    default: temperedForest
+  };
   static getBiome(temperature, humidity) {
     if (humidity < 0 || humidity > 1) {
       throw new Error("Humidity must be contains between 0 and 1.");
@@ -510,10 +511,10 @@ class BiomeMapper {
       throw new Error("Humidity must be contains between 0 and 1.");
     }
 
-    const humidityIndex = Math.floor(humidity / 0.05);
-    humidityIndex === 20 ? 19 : humidityIndex;
-    const temperatureIndex = Math.floor(temperature / 0.05);
-    temperatureIndex === 20 ? 19 : temperatureIndex;
+    let humidityIndex = Math.floor(humidity / 0.05);
+    humidityIndex = humidityIndex === 20 ? 19 : humidityIndex;
+    let temperatureIndex = Math.floor(temperature / 0.05);
+    temperatureIndex = temperatureIndex === 20 ? 19 : temperatureIndex;
 
     return map[temperatureIndex][humidityIndex];
   }

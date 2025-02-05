@@ -1,8 +1,7 @@
 import {
   Color,
   Float32BufferAttribute,
-  GridHelper,
-  MeshPhongMaterial,
+  MeshLambertMaterial,
   PlaneGeometry,
   ShaderMaterial,
 } from "three";
@@ -12,26 +11,36 @@ import alea from "alea";
 
 import Console from "@core/../Console/Console";
 import Command from "../../../src/Engine/Console/Command";
-import { lerp } from "three/src/math/MathUtils.js";
-import BiomeMapper from "./BiomeMapping"
+import { clamp, lerp } from "three/src/math/MathUtils.js";
+import BiomeMapper from "./BiomeMapping";
 
 class TerrainGenerator {
   terrainWidth = 50000;
   terrainHeight = 50000;
-  subdivisions = 128;
+  subdivisions = 3500;
 
-  altitudeFrequency = 22.4;
-  temperatureFrequency = 7;
-  humidityFrequency = 4.3;
+  altitudeFrequency = 5;
+  temperatureFrequency = 2;
+  humidityFrequency = 3.5;
   erosionFrequency = 3;
+  testerFrequency = 5;
 
-  altitudeWeight = 21;
-  erosionWeight = 10
+  altitudeWeight = 25;
+  erosionWeight = 1;
+  erosionMin = 2;
+  erosionMax = 6;
+
+  verticality = 0.75;
+  lacunarity = 3;
+  persistence = 0.36;
+  scale = 2;
+  sharpness = 1.75;
 
   showAltitude = false;
   showTemperature = false;
   showHumidity = false;
   showErosion = false;
+  showTester = false;
 
   updateTerrainHeight = true;
 
@@ -41,6 +50,8 @@ class TerrainGenerator {
   temperatureMapNoise = createNoise2D(alea("temperature-noise"));
   humidityMapNoise = createNoise2D(alea("humidity-noise"));
   erosionMapNoise = createNoise2D(alea("erosion-noise"));
+  testerMapNoise = createNoise2D(alea("tester-noise"));
+  reliefMapNoise = createNoise2D(alea("relief-noise"));
 
   scene;
 
@@ -54,9 +65,10 @@ class TerrainGenerator {
     this.createTerrain();
     this.createBiomes();
     this.modifyHeightMap();
+
     this.colorize();
 
-    // Console.execute("maps toggle --erosion");
+    // Console.execute("maps toggle --humidity");
 
     return this.#meshRenderer;
   }
@@ -69,6 +81,7 @@ class TerrainGenerator {
     this.createAltitudeMap();
     this.createTemperatureMap();
     this.createHumidityMap();
+    // this.createTesterMap();
 
     this.computeBiomes();
 
@@ -94,6 +107,7 @@ class TerrainGenerator {
       this.showTemperature = false;
       this.showHumidity = false;
       this.showErosion = false;
+      this.showTester = false;
     } else {
       this.showAltitude = !!type["--altitude"]
         ? !this.showAltitude
@@ -107,38 +121,14 @@ class TerrainGenerator {
       this.showErosion = !!type["--erosion"]
         ? !this.showErosion
         : this.showErosion;
+      this.showTester = !!type["--tester"] ? !this.showTester : this.showTester;
     }
     this.colorize();
   }
 
-  lerp(a, b, t) {
-    return a * (1 - t) + b * t;
-  }
-
-  lerpColor(colorA, colorB, t) {
-    const r = lerp(colorA.r * 255, colorB.r * 255, t);
-    const g = lerp(colorA.g * 255, colorB.g * 255, t);
-    const b = lerp(colorA.b * 255, colorB.b * 255, t);
-    return new Color(r / 255, g / 255, b / 255); // Normalisation des valeurs
-  }
-
   determinateBiome(i) {
     let params = this.#verticesDatas[i];
-    return BiomeMapper.getBiome(params.temperature, params.humidity)
-  }
-
-  calculateScore(biome, temperature, humidity) {
-    // Calcul de la distance par rapport aux valeurs optimales
-    const tempDiff = Math.abs(temperature - biome.averageConditions.temperature);
-    const humidityDiff = Math.abs(humidity - biome.averageConditions.humidity);
-
-    let temperatureRange =
-      biome.conditions.temperature.max - biome.conditions.temperature.min;
-    let humidityRange =
-      biome.conditions.humidity.max - biome.conditions.humidity.min;
-
-    // Plus la distance est faible, plus le score est élevé
-    return 1 - (tempDiff / temperatureRange + humidityDiff / humidityRange) / 2;
+    return BiomeMapper.getBiome(params.temperature, params.humidity);
   }
 
   computeBiomes() {
@@ -151,78 +141,89 @@ class TerrainGenerator {
     }
   }
 
-  createAltitudeMap() {
+  generateRelief() {
+    // let octaves = 4;
+    // for (
+    //   let i = 0;
+    //   i < this.#geometry.attributes.position.array.length / 3;
+    //   i++
+    // ) {
+    //   const x = this.#geometry.attributes.position.getX(i);
+    //   const y = this.#geometry.attributes.position.getY(i);
+    //   let amplitude = 1;
+    //   let frequency = 1;
+    //   let noiseHeight = 0;
+    //   // Génération multi-octaves
+    //   for (let octave = 0; octave < octaves; octave++) {
+    //     const nx = (x / this.terrainWidth) * this.scale * frequency; //+ seed;
+    //     const ny = (y / this.terrainHeight) * this.scale * frequency; //+ seed;
+    //     const noiseValue = Math.abs(this.reliefMapNoise(nx, ny));
+    //     noiseHeight += noiseValue * amplitude;
+    //     amplitude *= this.persistence; // Réduit l'amplitude à chaque octave
+    //     frequency *= this.lacunarity; // Augmente la fréquence à chaque octave
+    //   }
+    //   this.#verticesDatas[i].height = noiseHeight ** 2;
+    // }
+  }
+
+  createTesterMap(tick = 0) {
+    let octaves = 6;
     for (
       let i = 0;
       i < this.#geometry.attributes.position.array.length / 3;
+      // i < 5 ;
       i++
     ) {
       const x = this.#geometry.attributes.position.getX(i);
       const y = this.#geometry.attributes.position.getY(i);
-
       const nx = x / this.terrainWidth;
       const ny = y / this.terrainHeight;
 
-      let n =
-        (this.altitudeMapNoise(
-          nx * this.altitudeFrequency,
-          ny * this.altitudeFrequency
-        ) +
-          1) /
-        2;
-      this.#verticesDatas[i].altitude = (n + this.#verticesDatas[i].erosion * this.erosionWeight)/(this.erosionWeight+1);
+      // let noiseHeight = this.fractalNoise(nx, ny, {
+      //   octaves: octaves,
+      //   persistence: this.persistence,
+      //   lacunarity: this.lacunarity,
+      //   scale: this.scale
+      // })
+
+      let amplitude = 1;
+      let frequency = 1;
+      let noiseHeight = 0;
+
+      let noises = [];
+      let amplitudes = [];
+
+      // Génération multi-octaves
+      for (let octave = 0; octave < octaves; octave++) {
+        let ox = nx * this.scale * frequency; //+ seed;
+        let oy = ny * this.scale * frequency; //+ seed;
+
+        const noiseValue = this.domainWarp(ox, oy, this.testerMapNoise);
+
+        noises.push(noiseValue);
+        amplitudes.push(amplitude);
+
+        amplitude *= this.persistence; // Réduit l'amplitude à chaque octave
+        frequency *= this.lacunarity; // Augmente la fréquence à chaque octave
+      }
+      noiseHeight = this.weightedAverage(noises, amplitudes);
+      this.#verticesDatas[i].tester = 1 - Math.abs(noiseHeight); // Calculated base noise
+      this.#verticesDatas[i].tester =
+        this.#verticesDatas[i].tester ** this.sharpness; // Apply a sharpness
+
+      this.#verticesDatas[i].tester =
+        this.#verticesDatas[i].tester *
+        (1 - this.#verticesDatas[i].erosion * this.erosionWeight);
+
+        this.#geometry.attributes.position.setZ(
+          i,
+          this.#verticesDatas[i].tester * this.maxAltitude
+        );
     }
-  }
 
-  createTemperatureMap() {
-    for (
-      let i = 0;
-      i < this.#geometry.attributes.position.array.length / 3;
-      i++
-    ) {
-      const x = this.#geometry.attributes.position.getX(i);
-      const y = this.#geometry.attributes.position.getY(i);
-
-      const nx = x / this.terrainWidth 
-      const ny = y / this.terrainHeight
-
-      let altitudeInfluence = this.#verticesDatas[i].altitude;
-      let n =
-        (this.temperatureMapNoise(
-          nx * this.temperatureFrequency,
-          ny * this.temperatureFrequency
-        ) +
-          1) /
-        2;
-
-      n =
-        (n + this.altitudeWeight * altitudeInfluence) /
-        (this.altitudeWeight + 1);
-      this.#verticesDatas[i].temperature = 1 - n;
-    }
-  }
-
-  createHumidityMap() {
-    for (
-      let i = 0;
-      i < this.#geometry.attributes.position.array.length / 3;
-      i++
-    ) {
-      const x = this.#geometry.attributes.position.getX(i);
-      const y = this.#geometry.attributes.position.getY(i);
-
-      const nx = x / this.terrainWidth;
-      const ny = y / this.terrainHeight;
-
-      let n =
-        (this.humidityMapNoise(
-          nx * this.humidityFrequency,
-          ny * this.humidityFrequency
-        ) +
-          1) /
-        2;
-      this.#verticesDatas[i].humidity = n;
-    }
+    // Recompute normals and indicate to Three to update the mesh
+    this.#geometry.computeVertexNormals();
+    this.#geometry.attributes.position.needsUpdate = true;
   }
 
   createErosionMap() {
@@ -238,72 +239,47 @@ class TerrainGenerator {
       const ny = y / this.terrainHeight;
 
       let n =
-        (this.erosionMapNoise(
+        this.erosionMapNoise(
           nx * this.erosionFrequency,
           ny * this.erosionFrequency
-        ) +
-          1) /
-        2;
+        ) *
+          0.5 +
+        0.5;
       this.#verticesDatas[i].erosion = n;
     }
   }
 
-  // Apply color for each biome. If a vertice is near to an edge (depending on influenceThreshold), mix color for each near biome for smooth transitions
-  colorize() {
-    let colors = [];
-    let baseColor = new Color(0xffffff);
-    // Loop through each vertice
+  createAltitudeMap() {
     for (
       let i = 0;
       i < this.#geometry.attributes.position.array.length / 3;
+      // i < 5;
       i++
     ) {
-      let color;
-      if (this.showAltitude) {
-        color = baseColor.clone();
-        color.multiplyScalar(this.#verticesDatas[i].altitude > .8 ? 1 : this.#verticesDatas[i].altitude);
-      } else if (this.showTemperature) {
-        color = baseColor.clone();
-        color.multiplyScalar(this.#verticesDatas[i].temperature < .2 ? 1 : this.#verticesDatas[i].temperature);
-      } else if (this.showHumidity) {
-        color = baseColor.clone();
-        color.multiplyScalar(this.#verticesDatas[i].humidity);
-      } else if (this.showErosion) {
-        color = baseColor.clone();
-        color.multiplyScalar(this.#verticesDatas[i].erosion);
-      } else {
-        color = this.#verticesDatas[i].biome.color || baseColor;
-      }
-      let arr = color.toArray();
-      colors[i * 3] = arr[0];
-      colors[i * 3 + 1] = arr[1];
-      colors[i * 3 + 2] = arr[2];
+      const x = this.#geometry.attributes.position.getX(i);
+      const y = this.#geometry.attributes.position.getY(i);
+
+      const nx = x / this.terrainWidth;
+      const ny = y / this.terrainHeight;
+
+      let noiseHeight = this.fractalNoise(nx, ny, this.testerMapNoise, {
+        octaves: 6,
+        persistence: this.persistence,
+        lacunarity: this.lacunarity,
+        scale: this.scale,
+      });
+
+      // console.log("altitude noiseHeight", noiseHeight)
+
+      this.#verticesDatas[i].altitude = 1 - Math.abs(noiseHeight); // Calculated base noise
+      this.#verticesDatas[i].altitude =
+      // this.#verticesDatas[i].altitude = 1 + (this.#verticesDatas[i].altitude - 1) ** 3
+      this.#verticesDatas[i].altitude ** this.sharpness; // Apply a sharpness
+
+      this.#verticesDatas[i].altitude =
+        this.#verticesDatas[i].altitude *
+        (1 - this.#verticesDatas[i].erosion * this.erosionWeight); // Apply erosion weight
     }
-    // Reset the buffer array in the geometry and recompute normals
-    this.#geometry.setAttribute("color", new Float32BufferAttribute(colors, 3));
-    this.#geometry.computeVertexNormals();
-  }
-
-  // Apply a weighted color mix depending
-  mixMultipleColors(colors, weights) {
-    if (colors.length !== weights.length) {
-      throw new Error("Arrays 'colors' and 'weights' have not the same length");
-    }
-
-    // Normalize weights
-    const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
-    const normalizedWeights = weights.map((weight) => weight / totalWeight);
-
-    // Base color to increment
-    const mixedColor = new Color(0, 0, 0);
-
-    // Add colors based on their weight
-    colors.forEach((color, i) => {
-      const tempColor = new Color(color);
-      mixedColor.add(tempColor.multiplyScalar(normalizedWeights[i]));
-    });
-
-    return mixedColor;
   }
 
   weightedAverage(values, weights) {
@@ -325,14 +301,135 @@ class TerrainGenerator {
     return weightedSum / totalWeight;
   }
 
+  fractalNoise(x, y, mapNoise, options = {}) {
+    const octaves = options.octaves; // Nombre d'octaves
+    const persistence = options.persistence; // Influence des détails (amplitude)
+    const lacunarity = options.lacunarity; // Fréquence des détails
+    const scale = options.scale; // Échelle globale
+
+    let amplitude = 1;
+    let frequency = 1;
+    let noiseHeight = 0;
+
+    let noises = [];
+    let amplitudes = [];
+
+    // Génération multi-octaves
+    for (let octave = 0; octave < octaves; octave++) {
+      let ox = x * scale * frequency; //+ seed;
+      let oy = y * scale * frequency; //+ seed;
+
+      // const noiseValue = 1 - Math.abs(this.testerMapNoise(nx, ny))
+      const noiseValue = this.domainWarp(ox, oy, mapNoise);
+
+      noises.push(noiseValue);
+      amplitudes.push(amplitude);
+
+      amplitude *= persistence; // Réduit l'amplitude à chaque octave
+      frequency *= lacunarity; // Augmente la fréquence à chaque octave
+    }
+    noiseHeight = this.weightedAverage(noises, amplitudes);
+
+    return noiseHeight;
+  }
+
+  domainWarp(x, y, noiseFunc) {
+    let warp = noiseFunc(x * 0.05, y * 0.05);
+    return noiseFunc(x + warp, y + warp);
+  }
+
+  createTemperatureMap() {
+    for (
+      let i = 0;
+      i < this.#geometry.attributes.position.array.length / 3;
+      i++
+    ) {
+      const x = this.#geometry.attributes.position.getX(i);
+      const y = this.#geometry.attributes.position.getY(i);
+
+      const nx = x / this.terrainWidth;
+      const ny = y / this.terrainHeight;
+
+      let altitudeInfluence = this.#verticesDatas[i].altitude;
+      let n = 
+        this.temperatureMapNoise(
+          nx * this.temperatureFrequency,
+          ny * this.temperatureFrequency
+        ) *.5 + .5
+      n = lerp(n, 0, altitudeInfluence**0.5)
+      this.#verticesDatas[i].temperature = n;
+    }
+  }
+
+  createHumidityMap() {
+    for (
+      let i = 0;
+      i < this.#geometry.attributes.position.array.length / 3;
+      i++
+    ) {
+      const x = this.#geometry.attributes.position.getX(i);
+      const y = this.#geometry.attributes.position.getY(i);
+
+      const nx = x / this.terrainWidth;
+      const ny = y / this.terrainHeight;
+
+      let n = 
+        this.humidityMapNoise(
+          nx * this.humidityFrequency,
+          ny * this.humidityFrequency
+        ) * .5 + .5
+      
+      this.#verticesDatas[i].humidity = n;
+    }
+  }
+
+  smoothShape(a, b, t) {
+    let h = clamp((b - a + t) / (2 * t), 0, 1);
+    return a * h + b * (1 - h) - t * h * (1 - h);
+  }
+  // Apply color for each biome. If a vertice is near to an edge (depending on influenceThreshold), mix color for each near biome for smooth transitions
+  colorize() {
+    let colors = [];
+    let baseColor = new Color(0xffffff);
+    // Loop through each vertice
+    for (
+      let i = 0;
+      i < this.#geometry.attributes.position.array.length / 3;
+      i++
+    ) {
+      let color;
+      if (this.showAltitude) {
+        color = baseColor.clone();
+        color.multiplyScalar(this.#verticesDatas[i].altitude);
+      } else if (this.showTemperature) {
+        color = baseColor.clone();
+        color.multiplyScalar(
+          this.#verticesDatas[i].temperature
+        );
+      } else if (this.showHumidity) {
+        color = baseColor.clone();
+        color.multiplyScalar(this.#verticesDatas[i].humidity);
+      } else if (this.showErosion) {
+        color = baseColor.clone();
+        color.multiplyScalar(this.#verticesDatas[i].erosion);
+      } else if (this.showTester) {
+        color = baseColor.clone();
+        color.multiplyScalar(this.#verticesDatas[i].tester);
+      } else {
+        color = this.#verticesDatas[i].biome.color || baseColor;
+      }
+      let arr = color.toArray();
+      colors[i * 3] = arr[0];
+      colors[i * 3 + 1] = arr[1];
+      colors[i * 3 + 2] = arr[2];
+    }
+    // Reset the buffer array in the geometry and recompute normals
+    this.#geometry.setAttribute("color", new Float32BufferAttribute(colors, 3));
+    this.#geometry.computeVertexNormals();
+  }
+
   // Create the basis of geometry, material and mesh for the terrain. All modifiers applied to are in other function of this class
   createTerrain() {
-    const gridHelper = new GridHelper(this.terrainWidth, this.subdivisions);
-    gridHelper.rotation.x = -Math.PI / 2;
-    setTimeout(() => {
-      // this.scene.threeScene.add(gridHelper)
-    }, 50);
-
     this.#geometry = new PlaneGeometry(
       this.terrainWidth,
       this.terrainHeight,
@@ -340,25 +437,25 @@ class TerrainGenerator {
       this.subdivisions
     );
 
-    // this.#material = new MeshLambertMaterial({vertexColors: true});
+    this.#material = new MeshLambertMaterial({vertexColors: true});
     // this.#material = new MeshBasicMaterial({ vertexColors: true });
 
-    this.#material = new ShaderMaterial({
-      vertexShader: `
-          flat varying vec3 vColor;
-          void main() {
-              vColor = color; // Passe la couleur brute sans interpolation
-              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-          }
-      `,
-      fragmentShader: `
-          flat varying vec3 vColor;
-          void main() {
-              gl_FragColor = vec4(vColor, 1.0); // Affiche la couleur brute
-          }
-      `,
-      vertexColors: true, // Active les couleurs par sommet
-    });
+    // this.#material = new ShaderMaterial({
+    //   vertexShader: `
+    //       flat varying vec3 vColor;
+    //       void main() {
+    //           vColor = color; // Passe la couleur brute sans interpolation
+    //           gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    //       }
+    //   `,
+    //   fragmentShader: `
+    //       flat varying vec3 vColor;
+    //       void main() {
+    //           gl_FragColor = vec4(vColor, 1.0); // Affiche la couleur brute
+    //       }
+    //   `,
+    //   vertexColors: true, // Active les couleurs par sommet
+    // });
 
     for (
       let i = 0;
@@ -370,6 +467,8 @@ class TerrainGenerator {
         temperature: 0,
         humidity: 0,
         erosion: 0,
+        height: 0,
+        tester: 0,
         biome: null,
       };
     }
@@ -389,14 +488,10 @@ class TerrainGenerator {
       i < this.#geometry.attributes.position.array.length / 3;
       i++
     ) {
-      if (this.updateTerrainHeight) {
-        if (this.#verticesDatas[i].altitude) {
-          this.#geometry.attributes.position.setZ(
-            i,
-            this.#verticesDatas[i].altitude * this.maxAltitude
-          );
-        }
-      }
+      this.#geometry.attributes.position.setZ(
+        i,
+        this.#verticesDatas[i].altitude * this.maxAltitude
+      );
     }
 
     // Recompute normals and indicate to Three to update the mesh

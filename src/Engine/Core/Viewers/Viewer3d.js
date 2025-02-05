@@ -34,9 +34,9 @@ class Viewer3d extends Viewer {
       100000
     );
 
-    this.camera.position.x = 20000;
-    this.camera.position.y = 20000;
-    this.camera.position.z = 20000;
+    this.camera.position.x = 15000;
+    this.camera.position.y = 12000;
+    this.camera.position.z = 15000;
     // this.camera.position.x = 0;
     // this.camera.position.y = 500;
     // this.camera.position.z = 0;

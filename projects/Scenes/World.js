@@ -13,8 +13,11 @@ class World extends Scene {
   ambientLight;
   controls;
 
+  map
+
   setup() {
     let map = new Map();
+    this.map = map
     this.sunlight = new PointLight(0xffffff, 50000000, 5000000);
     this.sunlight.transform.position.z = 10000;
 
@@ -34,6 +37,7 @@ class World extends Scene {
   }
 
   loop(tick) {
+    this.map.update(tick)
     this.controls.update();
   }
 }

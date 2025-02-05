@@ -5,6 +5,7 @@ import { GUI } from "dat.gui";
 import TerrainGenerator from "./TerrainGenerator";
 
 class Map extends Entity {
+  generator;
   constructor() {
     super();
     this.addComponent(new MapRender());
@@ -12,15 +13,19 @@ class Map extends Entity {
   }
 
   generateMap() {
-    let terrainGenerator = new TerrainGenerator();
+    this.generator = new TerrainGenerator();
 
     setTimeout(() => {
-      terrainGenerator.scene = this.scene;
+      this.generator.scene = this.scene;
     }, 50);
 
-    this.addGui(terrainGenerator);
-    let meshRenderer = terrainGenerator.create();
+    this.addGui(this.generator);
+    let meshRenderer = this.generator.create();
     this.addComponent(meshRenderer);
+  }
+
+  update(tick) {
+    // this.generator.createTesterMap(tick)
   }
 
   addGui(instance) {
@@ -31,21 +36,54 @@ class Map extends Entity {
       altitudeWeight: instance.altitudeWeight,
       temperatureFrequency: instance.temperatureFrequency,
       humidityFrequency: instance.humidityFrequency,
+      testerFrequency: instance.testerFrequency,
       erosionFrequency: instance.erosionFrequency,
       erosionWeight: instance.erosionWeight,
+      erosionMin: instance.erosionMin,
+      erosionMax: instance.erosionMax,
       updateTerrainHeight: instance.updateTerrainHeight,
+      lacunarity: instance.lacunarity,
+      persistence: instance.persistence,
+      verticality: instance.verticality,
+      sharpness: instance.sharpness,
+      scale: instance.scale,
     };
 
     Object.keys(datas).forEach((key) => {
       gui.add(datas, key).onChange((value) => {
-        instance[key] = value
-        instance.createBiomes();
-        if (["altitudeFrequency", "erosionFrequency", "erosionWeight"].includes(key)) {
-          instance.modifyHeightMap()
+        instance[key] = value;
+        if (
+          [
+            "lacunarity",
+            "scale",
+            "persistence",
+            "verticality",
+            "erosionFrequency",
+            "erosionWeight",
+            "sharpness",
+            "testerFrequency",
+          ].includes(key)
+        ) {
+          instance.createTesterMap();
+        } else {
+          instance.createBiomes();
+          if (
+            [
+              "altitudeFrequency",
+              "erosionFrequency",
+              "erosionWeight",
+              "lacunarity",
+              "persistence",
+              "scale",
+            ].includes(key)
+          ) {
+            // instance.generateRelief();
+            instance.modifyHeightMap();
+          }
         }
-        instance.colorize()
+        instance.colorize();
       });
-    })
+    });
   }
 }
 
