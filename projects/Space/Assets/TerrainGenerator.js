@@ -16,7 +16,7 @@ import BiomeMapper from "./BiomeMapping";
 
 class TerrainGenerator {
   terrainSize = 50000;
-  subdivisions = 128;
+  subdivisions = 3000;
 
   altitudeFrequency = 5;
   temperatureFrequency = 2;
@@ -30,13 +30,14 @@ class TerrainGenerator {
   erosionMax = 6;
 
   verticality = 0.75;
-  lacunarity = 3;
+  lacunarity = 2.75;
   persistence = 0.36;
   scale = 2;
-  sharpness = 1.75;
-  disturbAmplitude = 1
-  disturbXFrequency = 1
-  disturbYFrequency = 1
+  sharpness = 1.5;
+  disturbAmplitude = 1.66
+  biomeBlendingSize = .16
+  biomeBlendingStrength = 1
+
 
   showAltitude = false;
   showTemperature = false;
@@ -134,19 +135,20 @@ class TerrainGenerator {
   getVerticeIndex = (u, v, widthSegments)=> (v * (widthSegments + 1) + u)
 
   determinateBiome(i) {
+    // let params = this.#verticesDatas[i];
     let resolution = this.terrainSize / this.subdivisions
     const x = this.#geometry.attributes.position.getX(i) / resolution;
     const y = this.#geometry.attributes.position.getY(i) / resolution * -1;
 
-    let xDisturbed = (this.disturbXFrontier(x * this.subdivisions * this.disturbXFrequency, y * this.subdivisions * this.disturbXFrequency)) * this.disturbAmplitude
-    let yDisturbed = (this.disturbYFrontier(x * this.subdivisions * this.disturbYFrequency, y * this.subdivisions * this.disturbYFrequency)) * this.disturbAmplitude
+    let xDisturbed = (this.disturbXFrontier(x * this.subdivisions / 100, y * this.subdivisions / 100)) * this.disturbAmplitude * this.subdivisions / 200
+    let yDisturbed = (this.disturbYFrontier(x * this.subdivisions / 100, y * this.subdivisions / 100)) * this.disturbAmplitude * this.subdivisions / 200
     
     // let disturbedIndex = this.getVerticeIndex(x + this.subdivisions / 2, y + this.subdivisions / 2, this.subdivisions)
     let disturbedIndex = this.getVerticeIndex(clamp(Math.round((x + xDisturbed) + this.subdivisions / 2), 0, this.subdivisions), clamp(Math.round((y + yDisturbed) + this.subdivisions / 2), 0, this.subdivisions), this.subdivisions)
     let params = this.#verticesDatas[disturbedIndex];
     
     // console.log("biome to found", params,{ x, y, mappedX: x + this.subdivisions / 2, mappedY : y + this.subdivisions / 2, i, disturbedIndex})
-    let biomeFound = BiomeMapper.getBiome(params.temperature, params.humidity, {x, y})
+    let biomeFound = BiomeMapper.getBiome(params.temperature, params.humidity, this.biomeBlendingSize, this.biomeBlendingStrength)
     return biomeFound;
   }
 
@@ -156,7 +158,8 @@ class TerrainGenerator {
       i < this.#geometry.attributes.position.array.length / 3;
       i++
     ) {
-      this.#verticesDatas[i].biome = this.determinateBiome(i);
+      this.#verticesDatas[i].biomes = this.determinateBiome(i);
+      // console.log("this.#verticesDatas[i].biomes", this.#verticesDatas[i].biomes)
     }
   }
 
@@ -435,8 +438,10 @@ class TerrainGenerator {
         color = baseColor.clone();
         color.multiplyScalar(this.#verticesDatas[i].tester);
       } else {
-        color = this.#verticesDatas[i].biome.color || baseColor;
+        color = this.mixMultipleColors(this.#verticesDatas[i].biomes.map(v => v.biome.color), this.#verticesDatas[i].biomes.map(v => v.influence))
+        // color = this.#verticesDatas[i].biome.color || baseColor;
       }
+
       let arr = color.toArray();
       colors[i * 3] = arr[0];
       colors[i * 3 + 1] = arr[1];
@@ -446,6 +451,28 @@ class TerrainGenerator {
     this.#geometry.setAttribute("color", new Float32BufferAttribute(colors, 3));
     this.#geometry.computeVertexNormals();
   }
+
+    // Apply a weighted color mix depending
+    mixMultipleColors(colors, weights) {
+      if (colors.length !== weights.length) {
+        throw new Error("Arrays 'colors' and 'weights' have not the same length");
+      }
+  
+      // Normalize weights
+      const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+      const normalizedWeights = weights.map((weight) => weight / totalWeight);
+  
+      // Base color to increment
+      const mixedColor = new Color(0, 0, 0);
+  
+      // Add colors based on their weight
+      colors.forEach((color, i) => {
+        const tempColor = new Color(color);
+        mixedColor.add(tempColor.multiplyScalar(normalizedWeights[i]));
+      });
+  
+      return mixedColor;
+    }
 
   // Create the basis of geometry, material and mesh for the terrain. All modifiers applied to are in other function of this class
   createTerrain() {
@@ -489,6 +516,7 @@ class TerrainGenerator {
         height: 0,
         tester: 0,
         biome: null,
+        biomes: [],
       };
     }
 

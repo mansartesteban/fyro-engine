@@ -1,4 +1,4 @@
-import { createNoise2D } from "simplex-noise"
+import { clamp } from "three/src/math/MathUtils.js"
 import ColdDesert from "./Biomes/ColdDesert";
 import Grassland from "./Biomes/Grassland";
 import HotDesert from "./Biomes/HotDesert";
@@ -11,7 +11,6 @@ import Taiga from "./Biomes/Taiga";
 import TemperedForest from "./Biomes/TemperedForest";
 import TropicalForest from "./Biomes/TropicalForest";
 import Tundra from "./Biomes/Tundra";
-import Alea from "alea"
 
 const iceland = new Iceland();
 const tundra = new Tundra();
@@ -503,10 +502,42 @@ class BiomeMapper {
     tropicalForest,
     plain,
     swamp,
-    default: temperedForest
+  };
+
+  /*
+  x : valeur d'entrée.
+  k : contrôle la pente de la courbe (plus k est grand, plus la transition est abrupte).
+  x0: point d'inflexion (là où la courbe passe par 0.5).
+  */
+  static sigmoid(x, k = 1, x0 = 0.5) {
+    return 1 / (1 + Math.exp(-k * (x - x0)));
   }
-  
-  static getBiome(temperature, humidity, coordinates) {
+
+  static proximityCoefficient(value, min, max, delta, strength) {
+    // S'assurer que min est inférieur à max
+    if (min > max) [min, max] = [max, min];
+
+    // À l'intérieur de la borne
+    if (value >= min && value <= max) {
+      return 1;
+    }
+
+    // En dessous de la borne, dans la zone de transition (delta)
+    if (value < min && value >= min - delta) {
+      // return this.sigmoid((value - (min - delta)) / delta, strength);
+      return (value - (min - delta)) / delta
+    }
+
+    // Au-dessus de la borne, dans la zone de transition (delta)
+    if (value > max && value <= max + delta) {
+      return (max + delta - value) / delta;
+    }
+
+    // En dehors du delta : retour à 0
+    return 0;
+  }
+
+  static getBiome(temperature, humidity, biomeBlendingSize, biomeBlendingStrength) {
     if (humidity < 0 || humidity > 1) {
       throw new Error("Humidity must be contains between 0 and 1.");
     }
@@ -514,13 +545,46 @@ class BiomeMapper {
       throw new Error("Humidity must be contains between 0 and 1.");
     }
 
-    let humidityIndex = Math.floor(humidity / 0.05);
-    humidityIndex = humidityIndex === 20 ? 19 : humidityIndex;
-    let temperatureIndex = Math.floor(temperature / 0.05);
-    temperatureIndex = temperatureIndex === 20 ? 19 : temperatureIndex;
-
-    return map[temperatureIndex][humidityIndex];
+    return Object.values(this.biomes)
+      .map((biome) => {
+        let temperatureInfluence = this.proximityCoefficient(
+          temperature,
+          biome.conditions.temperature.min,
+          biome.conditions.temperature.max,
+          biomeBlendingSize,
+          biomeBlendingStrength
+        );
+        let humidityInfluence = this.proximityCoefficient(
+          humidity,
+          biome.conditions.humidity.min,
+          biome.conditions.humidity.max,
+          biomeBlendingSize,
+          biomeBlendingStrength
+        );
+        return {
+          biome,
+          influence: [humidityInfluence, temperatureInfluence].includes(0) ? 0 : Math.min(temperatureInfluence, humidityInfluence),
+        };
+      })
+      .filter((biome) => biome.influence);
   }
+
+  // Biomes as a matrix
+  // static getBiome(temperature, humidity) {
+  //   if (humidity < 0 || humidity > 1) {
+  //     throw new Error("Humidity must be contains between 0 and 1.");
+  //   }
+  //   if (temperature < 0 || temperature > 1) {
+  //     throw new Error("Humidity must be contains between 0 and 1.");
+  //   }
+
+  //   let humidityIndex = Math.floor(humidity / 0.05);
+  //   humidityIndex = humidityIndex === 20 ? 19 : humidityIndex;
+  //   let temperatureIndex = Math.floor(temperature / 0.05);
+  //   temperatureIndex = temperatureIndex === 20 ? 19 : temperatureIndex;
+
+  //   return map[temperatureIndex][humidityIndex];
+  // }
 }
 
 export default BiomeMapper;

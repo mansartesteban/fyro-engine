@@ -48,8 +48,8 @@ class Map extends Entity {
       sharpness: instance.sharpness,
       scale: instance.scale,
       disturbAmplitude: instance.disturbAmplitude,
-      disturbXFrequency: instance.disturbXFrequency,
-      disturbYFrequency: instance.disturbYFrequency,
+      biomeBlendingSize: instance.biomeBlendingSize,
+      biomeBlendingStrength: instance.biomeBlendingStrength,
     };
 
     Object.keys(datas).forEach((key) => {
