@@ -15,9 +15,8 @@ import { clamp, lerp } from "three/src/math/MathUtils.js";
 import BiomeMapper from "./BiomeMapping";
 
 class TerrainGenerator {
-  terrainWidth = 50000;
-  terrainHeight = 50000;
-  subdivisions = 3500;
+  terrainSize = 50000;
+  subdivisions = 128;
 
   altitudeFrequency = 5;
   temperatureFrequency = 2;
@@ -35,6 +34,9 @@ class TerrainGenerator {
   persistence = 0.36;
   scale = 2;
   sharpness = 1.75;
+  disturbAmplitude = 1
+  disturbXFrequency = 1
+  disturbYFrequency = 1
 
   showAltitude = false;
   showTemperature = false;
@@ -52,6 +54,9 @@ class TerrainGenerator {
   erosionMapNoise = createNoise2D(alea("erosion-noise"));
   testerMapNoise = createNoise2D(alea("tester-noise"));
   reliefMapNoise = createNoise2D(alea("relief-noise"));
+
+  disturbYFrontier = createNoise2D(alea("disturb-temperature-map"));
+  disturbXFrontier = createNoise2D(alea("disturb-humidity-map"));
 
   scene;
 
@@ -126,9 +131,23 @@ class TerrainGenerator {
     this.colorize();
   }
 
+  getVerticeIndex = (u, v, widthSegments)=> (v * (widthSegments + 1) + u)
+
   determinateBiome(i) {
-    let params = this.#verticesDatas[i];
-    return BiomeMapper.getBiome(params.temperature, params.humidity);
+    let resolution = this.terrainSize / this.subdivisions
+    const x = this.#geometry.attributes.position.getX(i) / resolution;
+    const y = this.#geometry.attributes.position.getY(i) / resolution * -1;
+
+    let xDisturbed = (this.disturbXFrontier(x * this.subdivisions * this.disturbXFrequency, y * this.subdivisions * this.disturbXFrequency)) * this.disturbAmplitude
+    let yDisturbed = (this.disturbYFrontier(x * this.subdivisions * this.disturbYFrequency, y * this.subdivisions * this.disturbYFrequency)) * this.disturbAmplitude
+    
+    // let disturbedIndex = this.getVerticeIndex(x + this.subdivisions / 2, y + this.subdivisions / 2, this.subdivisions)
+    let disturbedIndex = this.getVerticeIndex(clamp(Math.round((x + xDisturbed) + this.subdivisions / 2), 0, this.subdivisions), clamp(Math.round((y + yDisturbed) + this.subdivisions / 2), 0, this.subdivisions), this.subdivisions)
+    let params = this.#verticesDatas[disturbedIndex];
+    
+    // console.log("biome to found", params,{ x, y, mappedX: x + this.subdivisions / 2, mappedY : y + this.subdivisions / 2, i, disturbedIndex})
+    let biomeFound = BiomeMapper.getBiome(params.temperature, params.humidity, {x, y})
+    return biomeFound;
   }
 
   computeBiomes() {
@@ -155,8 +174,8 @@ class TerrainGenerator {
     //   let noiseHeight = 0;
     //   // Génération multi-octaves
     //   for (let octave = 0; octave < octaves; octave++) {
-    //     const nx = (x / this.terrainWidth) * this.scale * frequency; //+ seed;
-    //     const ny = (y / this.terrainHeight) * this.scale * frequency; //+ seed;
+    //     const nx = (x / this.terrainSize) * this.scale * frequency; //+ seed;
+    //     const ny = (y / this.terrainSize) * this.scale * frequency; //+ seed;
     //     const noiseValue = Math.abs(this.reliefMapNoise(nx, ny));
     //     noiseHeight += noiseValue * amplitude;
     //     amplitude *= this.persistence; // Réduit l'amplitude à chaque octave
@@ -176,8 +195,8 @@ class TerrainGenerator {
     ) {
       const x = this.#geometry.attributes.position.getX(i);
       const y = this.#geometry.attributes.position.getY(i);
-      const nx = x / this.terrainWidth;
-      const ny = y / this.terrainHeight;
+      const nx = x / this.terrainSize;
+      const ny = y / this.terrainSize;
 
       // let noiseHeight = this.fractalNoise(nx, ny, {
       //   octaves: octaves,
@@ -235,8 +254,8 @@ class TerrainGenerator {
       const x = this.#geometry.attributes.position.getX(i);
       const y = this.#geometry.attributes.position.getY(i);
 
-      const nx = x / this.terrainWidth;
-      const ny = y / this.terrainHeight;
+      const nx = x / this.terrainSize;
+      const ny = y / this.terrainSize;
 
       let n =
         this.erosionMapNoise(
@@ -259,8 +278,8 @@ class TerrainGenerator {
       const x = this.#geometry.attributes.position.getX(i);
       const y = this.#geometry.attributes.position.getY(i);
 
-      const nx = x / this.terrainWidth;
-      const ny = y / this.terrainHeight;
+      const nx = x / this.terrainSize;
+      const ny = y / this.terrainSize;
 
       let noiseHeight = this.fractalNoise(nx, ny, this.testerMapNoise, {
         octaves: 6,
@@ -347,8 +366,8 @@ class TerrainGenerator {
       const x = this.#geometry.attributes.position.getX(i);
       const y = this.#geometry.attributes.position.getY(i);
 
-      const nx = x / this.terrainWidth;
-      const ny = y / this.terrainHeight;
+      const nx = x / this.terrainSize;
+      const ny = y / this.terrainSize;
 
       let altitudeInfluence = this.#verticesDatas[i].altitude;
       let n = 
@@ -370,8 +389,8 @@ class TerrainGenerator {
       const x = this.#geometry.attributes.position.getX(i);
       const y = this.#geometry.attributes.position.getY(i);
 
-      const nx = x / this.terrainWidth;
-      const ny = y / this.terrainHeight;
+      const nx = x / this.terrainSize;
+      const ny = y / this.terrainSize;
 
       let n = 
         this.humidityMapNoise(
@@ -431,8 +450,8 @@ class TerrainGenerator {
   // Create the basis of geometry, material and mesh for the terrain. All modifiers applied to are in other function of this class
   createTerrain() {
     this.#geometry = new PlaneGeometry(
-      this.terrainWidth,
-      this.terrainHeight,
+      this.terrainSize,
+      this.terrainSize,
       this.subdivisions,
       this.subdivisions
     );

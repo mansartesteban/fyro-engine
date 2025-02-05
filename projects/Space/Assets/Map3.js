@@ -47,6 +47,9 @@ class Map extends Entity {
       verticality: instance.verticality,
       sharpness: instance.sharpness,
       scale: instance.scale,
+      disturbAmplitude: instance.disturbAmplitude,
+      disturbXFrequency: instance.disturbXFrequency,
+      disturbYFrequency: instance.disturbYFrequency,
     };
 
     Object.keys(datas).forEach((key) => {

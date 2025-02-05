@@ -1,3 +1,4 @@
+import { createNoise2D } from "simplex-noise"
 import ColdDesert from "./Biomes/ColdDesert";
 import Grassland from "./Biomes/Grassland";
 import HotDesert from "./Biomes/HotDesert";
@@ -10,6 +11,7 @@ import Taiga from "./Biomes/Taiga";
 import TemperedForest from "./Biomes/TemperedForest";
 import TropicalForest from "./Biomes/TropicalForest";
 import Tundra from "./Biomes/Tundra";
+import Alea from "alea"
 
 const iceland = new Iceland();
 const tundra = new Tundra();
@@ -502,8 +504,9 @@ class BiomeMapper {
     plain,
     swamp,
     default: temperedForest
-  };
-  static getBiome(temperature, humidity) {
+  }
+  
+  static getBiome(temperature, humidity, coordinates) {
     if (humidity < 0 || humidity > 1) {
       throw new Error("Humidity must be contains between 0 and 1.");
     }
