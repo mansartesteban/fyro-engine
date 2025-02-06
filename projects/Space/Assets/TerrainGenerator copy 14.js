@@ -16,7 +16,7 @@ import BiomeMapper from "./BiomeMapping";
 
 class TerrainGenerator {
   terrainSize = 50000;
-  subdivisions = 3000;
+  subdivisions = 128;
 
   altitudeFrequency = 5;
   temperatureFrequency = 2;

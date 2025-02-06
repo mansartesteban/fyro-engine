@@ -25,7 +25,11 @@ class Map extends Entity {
   }
 
   update(tick) {
-    // this.generator.createTesterMap(tick)
+    // this.generator.update(tick)
+    // this.generator.tick = tick
+    // this.generator.createBiomes();
+    // this.generator.modifyHeightMap();
+    // this.generator.colorize();
   }
 
   addGui(instance) {
@@ -55,36 +59,27 @@ class Map extends Entity {
     Object.keys(datas).forEach((key) => {
       gui.add(datas, key).onChange((value) => {
         instance[key] = value;
-        if (
-          [
-            "lacunarity",
-            "scale",
-            "persistence",
-            "verticality",
-            "erosionFrequency",
-            "erosionWeight",
-            "sharpness",
-            "testerFrequency",
-          ].includes(key)
-        ) {
-          instance.createTesterMap();
-        } else {
-          instance.createBiomes();
-          if (
-            [
-              "altitudeFrequency",
-              "erosionFrequency",
-              "erosionWeight",
-              "lacunarity",
-              "persistence",
-              "scale",
-            ].includes(key)
-          ) {
-            // instance.generateRelief();
-            instance.modifyHeightMap();
-          }
-        }
+        // if (
+        //   [
+        //     "lacunarity",
+        //     "scale",
+        //     "persistence",
+        //     "verticality",
+        //     "erosionFrequency",
+        //     "erosionWeight",
+        //     "sharpness",
+        //     "testerFrequency",
+        //   ].includes(key)
+        // ) {
+        //   instance.createTesterMap();
+        // } else {
+        instance.createBiomes();
+
+        instance.modifyHeightMap();
+
         instance.colorize();
+
+        // }
       });
     });
   }
