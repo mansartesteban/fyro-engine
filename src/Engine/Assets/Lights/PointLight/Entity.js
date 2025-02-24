@@ -4,7 +4,7 @@ import PointLightRenderer from "./Renderer";
 class PointLight extends Entity {
   constructor(...options) {
     super();
-    this.addComponent(new PointLightRenderer(...options));
+    this.addComponent(new PointLightRenderer("renderer", ...options));
   }
 }
 

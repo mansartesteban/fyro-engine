@@ -132,38 +132,6 @@ class Controls {
     if (this.cameraSpeed <= 0) this.cameraSpeed = 0.1;
   }
 
-  moveCamera(direction) {
-    const q = new Quaternion();
-    q.setFromAxisAngle(new Vector3(0, 1, 0), this.phi);
-    direction.applyQuaternion(q);
-    direction.multiplyScalar(this.cameraSpeed);
-
-    this.camera.position.add(direction);
-  }
-
-  moveForward() {
-    this.moveCamera(new Vector3(0, 0, -1));
-  }
-
-  moveLeft() {
-    this.moveCamera(new Vector3(-1, 0, 0));
-  }
-
-  moveRight() {
-    this.moveCamera(new Vector3(1, 0, 0));
-  }
-
-  moveBackward() {
-    this.moveCamera(new Vector3(0, 0, 1));
-  }
-
-  moveDown() {
-    this.moveCamera(new Vector3(0, -1, 0));
-  }
-
-  moveUp() {
-    this.moveCamera(new Vector3(0, 1, 0));
-  }
 }
 
 export default Controls;

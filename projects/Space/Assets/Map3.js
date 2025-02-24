@@ -8,20 +8,19 @@ class Map extends Entity {
   generator;
   constructor() {
     super();
-    this.addComponent(new MapRender());
-    this.generateMap();
+    this.addComponent(new MapRender("map-render"));
   }
 
   generateMap() {
     this.generator = new TerrainGenerator();
-
-    setTimeout(() => {
-      this.generator.scene = this.scene;
-    }, 50);
+    this.generator.scene = this.scene;
 
     this.addGui(this.generator);
-    let meshRenderer = this.generator.create();
-    this.addComponent(meshRenderer);
+    this.generator.create()
+    // let meshRenderer = this.generator.create();
+    // let meshRenderer = this.generator.load();
+    
+    // this.addComponent(meshRenderer);
   }
 
   update(tick) {
@@ -40,7 +39,6 @@ class Map extends Entity {
       altitudeWeight: instance.altitudeWeight,
       temperatureFrequency: instance.temperatureFrequency,
       humidityFrequency: instance.humidityFrequency,
-      testerFrequency: instance.testerFrequency,
       erosionFrequency: instance.erosionFrequency,
       erosionWeight: instance.erosionWeight,
       erosionMin: instance.erosionMin,
@@ -51,9 +49,13 @@ class Map extends Entity {
       verticality: instance.verticality,
       sharpness: instance.sharpness,
       scale: instance.scale,
+      riverFrequency: instance.riverFrequency,
+      riverAmplitude: instance.riverAmplitude,
       disturbAmplitude: instance.disturbAmplitude,
+      disturbFrequency: instance.disturbFrequency,
       biomeBlendingSize: instance.biomeBlendingSize,
       biomeBlendingStrength: instance.biomeBlendingStrength,
+      // topographicSteps: instance.topographicSteps
     };
 
     Object.keys(datas).forEach((key) => {
@@ -77,6 +79,7 @@ class Map extends Entity {
 
         instance.modifyHeightMap();
 
+        // instance.createWater()
         instance.colorize();
 
         // }

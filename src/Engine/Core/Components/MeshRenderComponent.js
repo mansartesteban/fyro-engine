@@ -9,8 +9,8 @@ class MeshRenderComponent extends Component {
 
   // type: Wireframe, shades
 
-  constructor(options) {
-    super(options);
+  constructor(name, options) {
+    super(name, options);
 
     this.material = options?.material || this.createMaterial();
     this.geometry = options?.geometry || this.createGeometry();

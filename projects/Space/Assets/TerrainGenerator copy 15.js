@@ -203,7 +203,7 @@ class TerrainGenerator {
     let params = this.#verticesDatas[disturbedIndex];
 
     // console.log("biome to found", params,{ x, y, mappedX: x + this.subdivisions / 2, mappedY : y + this.subdivisions / 2, i, disturbedIndex})
-    let biomeFound = BiomeMapper.getBiome(
+    let biomeFound = BiomeMapper.findBiome(
       params.temperature,
       params.humidity,
       this.biomeBlendingSize,

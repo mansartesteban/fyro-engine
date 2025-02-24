@@ -130,7 +130,7 @@ class TerrainGenerator {
 
   determinateBiome(i) {
     let params = this.#verticesDatas[i];
-    return BiomeMapper.getBiome(params.temperature, params.humidity)
+    return BiomeMapper.findBiome(params.temperature, params.humidity)
   }
 
   calculateScore(biome, temperature, humidity) {

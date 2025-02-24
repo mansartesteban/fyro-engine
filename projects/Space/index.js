@@ -3,12 +3,15 @@ import World from "../Scenes/World";
 
 class Space extends Project {
   constructor() {
-    super();
+    super({
+      // isDev: true
+      isDev: false
+    });
   }
 
   setup() {
     let scene = new World();
-    this.addScene(scene, { viewer: { axisHelper: true }});
+    this.addScene(scene);
   }
 
   loop(tick) {}

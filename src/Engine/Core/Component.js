@@ -1,24 +1,31 @@
+import { generateUUID } from "three/src/math/MathUtils"
+
 class Component {
+  name = "";
   options = {};
   active = true;
   entity = null;
   needsUpdate = false;
 
-  constructor(options) {
+  constructor(name, options) {
+    this.name = name || generateUUID()
     if (options) {
       this.options = { ...this.options, ...options };
     }
+
+    queueMicrotask(() => this.setup())
   }
 
-  updateComponent(tick) {
+  updateComponent(deltaTime = 0) {
     if (this.active) {
-      this.update(tick);
+      this.update(deltaTime);
     }
   }
 
-  update() {}
+  update(deltaTime = 0) {}
 
   refresh() {}
+  setup() {}
 }
 
-export default Component;
+export default Component; 

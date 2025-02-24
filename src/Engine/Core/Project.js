@@ -11,6 +11,7 @@ class Project {
   options = {
     name: "New project",
     mountOn: "#app",
+    isDev: false
   };
   loopCallback;
   observer;
@@ -22,7 +23,7 @@ class Project {
   }
 
   addScene(scene, options) {
-    scene.createViewer(this.options.mountOn, options.viewer);
+    scene.createViewer(this.options.mountOn);
     scene.setup();
     this.scenes.push(scene);
   }
@@ -35,11 +36,11 @@ class Project {
     throw new ImplementError("setup", "Project");
   }
 
-  update(tick) {
-    this.scenes.forEach((scene) => scene.update(tick));
-    this.loop(tick);
+  update(deltaTime) {
+    this.scenes.forEach((scene) => scene.update(deltaTime));
+    this.loop(deltaTime);
   }
-  loop() {}
+  loop(deltaTime) {}
 }
 
 export default Project;

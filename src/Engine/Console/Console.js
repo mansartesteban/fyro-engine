@@ -12,11 +12,11 @@ class Console {
   #historyIndex = -1;
 
   #commands = [];
-  #stream = new ConsoleStream();
+  stream = new ConsoleStream();
   #cli = new CLI()
 
   constructor() {
-    this.#cli.stream = this.#stream
+    this.#cli.stream = this.stream
     this.#history = localStorage.getItem("fyro-console-history").split(",").map(line => line.replace("&nbsp;", ","))
     this.make();
   }
@@ -77,8 +77,8 @@ class Console {
   execute(args) {
     if (args !== "") {
 
-      this.#stream.log("> _ " + args);
-      this.#stream.checkpoint();
+      this.stream.log("> _ " + args);
+      this.stream.checkpoint();
 
 
       let promise = Promise.all([this.#cli.process(args)])
@@ -95,7 +95,7 @@ class Console {
   refreshLogs() {
     let that = this;
     that.#historyDom.innerHTML = "";
-    this.#stream.logs
+    this.stream.logs
       .slice(0, 15)
       .reverse()
       .forEach((log) => {
@@ -118,7 +118,7 @@ class Console {
     div.appendChild(this.#historyDom);
 
     this.refreshLogs();
-    this.#stream.observer.$on("log", () => this.refreshLogs());
+    this.stream.observer.$on("log", () => this.refreshLogs());
 
     this.#inputDom = document.createElement("input");
     this.#inputDom.addEventListener("keydown", (e) => {
@@ -147,7 +147,7 @@ class Console {
         e.preventDefault();
       } else if (e.key === "l" && e.ctrlKey === true) {
         e.preventDefault();
-        this.#stream.clear(true);
+        this.stream.clear(true);
       }
     });
 

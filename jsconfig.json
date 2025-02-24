@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "checkJs": true,
     "target": "ESNext",
     "baseUrl": "./",
     "paths": {
@@ -9,12 +10,13 @@
       "@errors/*": ["src/Application/Errors/*"],
       "@core/*": ["src/Engine/Core/*"],
       "@lib/*": ["src/Engine/Lib/*"]
-    }
+    },
+    "preserveSymlinks": true
   },
   "exclude": ["node_modules"],
   "include": [
-    "src/**/*.ts",
-    "bin/*.ts",
+    "src/**/*.js",
+    "projects/**/*.js",
     "src/Engine/Core/Entity.js",
     "src/Engine/Core/Engine.js",
     "src/Engine/Core/Controls.js",

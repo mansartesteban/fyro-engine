@@ -2,8 +2,8 @@ import { PointLight } from "three";
 import Component from "@core/Component";
 
 class PointLightRenderer extends Component {
-  constructor(...options) {
-    super();
+  constructor(name, ...options) {
+    super(name, options);
     this.object = new PointLight(...options);
   }
 

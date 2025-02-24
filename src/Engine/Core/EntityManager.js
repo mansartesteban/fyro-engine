@@ -1,5 +1,4 @@
 import Observer from "@core/Observer";
-import MeshRenderComponent from "@core/Components/MeshRenderComponent";
 import Entity from "@core/Entity.js";
 import UndefinedError from "@errors/UndefinedError";
 
@@ -34,7 +33,7 @@ class EntityManager {
     if (foundIndex !== -1) {
       let entityFound = this.entities[foundIndex];
 
-      this.observer.$emit(SceneManager.EVENTS.ENTITY_DELETED, entityFound);
+      this.observer.$emit(EntityManager.EVENTS.ENTITY_DELETED, entityFound);
       this.scene.threeScene.remove(entityFound.object);
       entityFound.object.remove();
       entityFound.object.clear();
@@ -60,8 +59,8 @@ class EntityManager {
     this.observer.$emit(EntityManager.EVENTS.ENTITY_ADDED, entity);
   }
 
-  update(tick) {
-    this.entities.forEach((entity) => entity.update(tick));
+  update(deltaTime) {
+    this.entities.forEach((entity) => entity.update(deltaTime));
   }
 }
 

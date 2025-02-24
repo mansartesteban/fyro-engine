@@ -2,8 +2,8 @@ import { AmbientLight } from "three";
 import Component from "@core/Component";
 
 class AmbientLightRenderer extends Component {
-  constructor(...options) {
-    super();
+  constructor(name, ...options) {
+    super(name, options);
     this.object = new AmbientLight(...options);
   }
 

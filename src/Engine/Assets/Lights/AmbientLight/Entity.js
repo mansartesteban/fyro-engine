@@ -4,7 +4,7 @@ import AmbientLightRenderer from "./Renderer";
 class AmbientLight extends Entity {
   constructor(...options) {
     super();
-    this.addComponent(new AmbientLightRenderer(...options));
+    this.addComponent(new AmbientLightRenderer("renderer", ...options));
   }
 }
 

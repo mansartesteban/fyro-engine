@@ -1,5 +1,6 @@
 import Observer from "@core/Observer";
 import Timer from "@lib/Time/Timer";
+import { Clock } from "three"
 
 const Events = {
   INITIALIZED: "INITIALIZED",
@@ -8,7 +9,7 @@ const Events = {
 class Engine {
   project;
   observer;
-  timer;
+  lastUpdate = 0
 
   constructor() {
     this.observer = new Observer(Events);
@@ -21,13 +22,12 @@ class Engine {
     this.observer.$emit(Events.INITIALIZED);
   }
 
-  loop(tick = 0) {
+  loop(currentTime = 0) {
     if (this.project) {
-      this.project.update(tick);
-      this.timer.reset();
+      this.project.update((currentTime - this.lastUpdate)/1000);
     }
-
-    window.requestAnimationFrame(this.loop.bind(this, tick + 1));
+    this.lastUpdate = currentTime
+    window.requestAnimationFrame(this.loop.bind(this));
   }
 }
 
